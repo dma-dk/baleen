@@ -98,7 +98,7 @@
     </pluginRepositories>
 
     <modules>
-        <module>baleen-s124</module>
+        <module>baleen-s124-xml-bindings</module>
         <module>baleen-server</module>
         <module>baleen-xml-server</module>
     </modules>
