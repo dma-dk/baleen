@@ -97,9 +97,10 @@
         </pluginRepository>
     </pluginRepositories>
 
-
     <modules>
         <module>baleen-s124</module>
+        <module>baleen-server</module>
+        <module>baleen-spring-server</module>
     </modules>
 
 </project>
