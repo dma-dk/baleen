@@ -10,9 +10,9 @@
 		<relativePath>../pom.xml</relativePath>
 	</parent>
 
-	<artifactId>baleen-s124</artifactId>
+	<artifactId>baleen-s124-xml-bindings</artifactId>
 	<packaging>jar</packaging>
-	<name>Niord-Base S-124 Library</name>
+	<name>Niord-Base S-124 XML Bindings</name>
 
 	
     <properties>
