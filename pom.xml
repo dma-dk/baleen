@@ -11,7 +11,7 @@
     <name>Baleen Parent</name>
 
     <properties>
-        <java.min.version>21</java.min.version>
+        <java.min.version>17</java.min.version>
         <maven.min.version>3.0.0</maven.min.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven-deploy-plugin.version>3.1.1</maven-deploy-plugin.version>
