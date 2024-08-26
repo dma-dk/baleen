@@ -3,3 +3,10 @@
 .settings
 target
 generated
+*~
+.DS_Store
+.idea
+*.iml
+.java-version
+.lucene/
+baleen-spring-server
