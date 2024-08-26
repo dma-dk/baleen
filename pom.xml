@@ -100,7 +100,7 @@
     <modules>
         <module>baleen-s124</module>
         <module>baleen-server</module>
-        <module>baleen-spring-server</module>
+        <module>baleen-xml-server</module>
     </modules>
 
 </project>
