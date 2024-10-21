@@ -22,6 +22,7 @@ import org.locationtech.jts.io.WKTReader;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+
 /**
  * The WKTUtils class.
  * <p/>

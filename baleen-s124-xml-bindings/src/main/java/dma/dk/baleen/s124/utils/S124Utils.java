@@ -115,31 +115,30 @@ public class S124Utils {
      * The character string input contains the S-124 XML content of the message. We can easily translate that into an S-124
      * Dataset object so that it can be accessed more efficiently.
      *
-     * @param s124
-     *            the S-124 dataset XML representation
+     * @param xml
+     *            the XML representation of a S-124 dataset
      * @return The unmarshalled S-124 DatasetType object
      * @throws JAXBException
-     *             for errors in the unmarshalling operation
+     *             if an error was encountered while unmarshalling the XML
      */
-    public static Dataset unmarshallS124(String s124) throws JAXBException {
+    public static Dataset unmarshallS124(String xml) throws JAXBException {
         // Manipulate the class loader for the JAXBContext
-        final Thread thread = Thread.currentThread();
-        final ClassLoader originalClassLoader = thread.getContextClassLoader();
+        Thread thread = Thread.currentThread();
+        ClassLoader originalClassLoader = thread.getContextClassLoader();
         thread.setContextClassLoader(DatasetImpl.class.getClassLoader());
-        final JAXBContext jaxbContext = JAXBContext.newInstance(DatasetImpl.class);
 
-        // Create the JAXB Unmarshaller
-        Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
+        try {
+            // Create a jaxb context and unmarshaller
+            JAXBContext jaxbContext = JAXBContext.newInstance(DatasetImpl.class);
+            Unmarshaller unmarshaller = jaxbContext.createUnmarshaller();
 
-        // Transform the S-124 context into an input stream and then a dataset
-        final ByteArrayInputStream is = new ByteArrayInputStream(s124.getBytes());
-        final Object value = JAXBIntrospector.getValue(jaxbUnmarshaller.unmarshal(is));
-
-        // Replace the original context loader
-        thread.setContextClassLoader(originalClassLoader);
-
-        // And return the dataset
-        return (Dataset) value;
+            // Transform the XML into an input stream and then a Dataset
+            ByteArrayInputStream is = new ByteArrayInputStream(xml.getBytes());
+            return (Dataset) JAXBIntrospector.getValue(unmarshaller.unmarshal(is));
+        } finally {
+            // Replace the original context loader
+            thread.setContextClassLoader(originalClassLoader);
+        }
     }
 
     /**
