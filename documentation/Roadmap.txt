@@ -1,0 +1,38 @@
+1.
+Bring back S-124 with Geography
+
+2. 
+
+   Transports
+   Security
+
+Inventory
+  Is all the data that is being stored
+
+
+ROADMAP
+This is a list of directions that could be taken in the future
+
+
+* Embedd
+
+* Additional Transports
+  Right now we have support for REST, WebSockets, SECOM. But we could, for example, add direct support for the MMS network.
+
+  // Source, Query, Sink
+
+* Embeddable
+  Could support an embedded version of Baleen
+
+* Non-GML Datasets
+  Currently we only support GML datasets
+ 
+
+* Multiple versions of data products
+  Currently there is only support for single version of each S-100 data product.
+  Being able to support multiple versions of a single data product is a complicated task.
+  
+  Especially because there have been little thoughts given to this from upstream specification work.
+
+
+   Multipl

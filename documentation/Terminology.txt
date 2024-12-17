@@ -1,0 +1,16 @@
+Dataset Bundle
+  A collection of 1 or more dataset instances
+  
+  ExchangeSet is one way
+  REST DTO is another.
+  
+  Purpose FOR_UPDATE, QUERY_RESULT, SUBSCRIPTION_POST
+  
+Node
+  A node that baleen communicates with
+   
+Connector
+  A connector is the technology Baleen communicates with another node with
+  
+  
+  

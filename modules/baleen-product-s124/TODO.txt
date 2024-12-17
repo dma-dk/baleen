@@ -1,0 +1,20 @@
+Extract alle S-124 beskeder fra Niord
+Tilføj til test.
+
+// Implement MRN->UUID
+
+Persist dem en efter en. 
+
+Få H2 op og køre
+
+Lav søgning
+
+Lav nogle tests
+
+Implement Generiske GML notifikationer 
+
+--- Niord
+Tilføj Orginsation Navn til Promulgation
+Display Version
+
+Implement Cancellation beskeder

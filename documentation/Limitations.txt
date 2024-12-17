@@ -1,0 +1,17 @@
+* "Update datasets not supported" 
+  Baleen does not currently support update datasets. This means, that we only support base datasets at the moment.
+  
+* Non-GML Datasets
+  Baleen does not support other encodings than GML at the moment.
+ 
+* Multiple versions of data products
+  Baleen only supports a single version of each S-100 data product.
+  
+* Support files, portrayal
+  Baleen does not current support support files, portrayal or anything else than datasets from a S-100 exchangeset.
+
+* Foreign Datasets
+  Baleen does not support data products that are defined outside of the S-100
+  
+* Uploads cannot use S-100 ExchangeSet
+  Baleen currently does not support uploads using S-100 ExchangeSets. Only JSON based uploads

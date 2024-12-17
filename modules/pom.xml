@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+  <groupId>dk.dma.baleen</groupId>
+  <artifactId>baleen-root-pom</artifactId>
+  <version>0.1-SNAPSHOT</version>
+    <relativePath>..</relativePath>
+  </parent>
+  <artifactId>baleen-modules-pom</artifactId>
+  <packaging>pom</packaging>
+  <name>Baleen-Modules-Pom</name>
+  <description>Baleen Modules POM</description>
+  
+  <!-- ==================================================================== -->
+  <modules>
+    <module>baleen-base</module>
+    <module>baleen-app</module>
+
+    <module>baleen-product-s124</module>
+    <module>baleen-product-s125</module>
+    <module>baleen-product-s201</module>
+
+    <module>baleen-connector-secom</module>
+    <module>baleen-connector-web</module>
+  </modules>
+  
+  <!-- ==================================================================== -->
+  <properties>
+    <!-- Locate the root directory of the multi-module build -->
+    <root.dir>${project.basedir}/..</root.dir>
+    
+    <!-- Test Dependencies Versions -->
+    <version.test.assertj>3.26.3</version.test.assertj>
+    <version.test.junit>5.11.0</version.test.junit>
+    
+  </properties>
+
+  <!-- ==================================================================== -->
+  <dependencyManagement>
+    <dependencies>
+    
+      <!-- Testing -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+     
+      <dependency>
+        <groupId>org.openjdk.jmh</groupId>
+        <artifactId>jmh-core</artifactId>
+        <version>${version.test.jmh}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.openjdk.jmh</groupId>
+        <artifactId>jmh-generator-annprocess</artifactId>
+        <version>${version.test.jmh}</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+  
+<dependencies>
+ <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-api</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- JUnit Jupiter Engine for running tests -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <scope>test</scope>
+        </dependency>
+</dependencies>
+  <!-- ==================================================================== -->
+  <build>
+    <!-- <directory>${project.basedir}/target.tmp</directory> -->
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <compilerArgument>-Xlint:deprecation</compilerArgument>
+          <compilerArgument>-Xlint:unchecked</compilerArgument>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <configuration>
+          <excludePackageNames>packed.*:*.internals.*:*.test.*:*.examples.*:</excludePackageNames>
+          <additionalOptions>-tag "apiNote:a:API Note:" -tag "implSpec:a:Implementation Requirements:" -tag "implNote:a:Implementation Note:"</additionalOptions>
+         <additionalOptions>-Xdoclint:none</additionalOptions>
+         <additionalJOption>-Xdoclint:none</additionalJOption>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

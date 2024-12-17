@@ -1,0 +1,71 @@
+Implementerings metoder
+
+"Baleen is designed for infrequent updates, it can easily sustain in the 10s of updates per second.
+But it should not be used for systems that have a very high update rate." 
+
+ high-volume queries with, 
+providing real-time monitoring capabilities."
+
+// Write, Read, Observe
+// Update, Query, Watch
+// Store, Get, Track
+// Upload, Download, Track <-- tracks updates
+
+Update -> Connector -ConnectorContext> ProductManager -> Update Products (Recalculate Datasets if needed) -> Notify Observers
+
+Query -> Connector -> ProductManager -> Query
+
+// Upload + Parse + Prepare
+ChangeDataset, validate, parse
+
+// Update each
+
+// Connectors (Upload (ChangeSet), DataSet Query, Subscription)
+//// Java
+//// SECOM
+//// MMS
+//// WEB (REST/WebSocket)
+
+// Products
+//// S-124
+//// S-125
+
+// DataBundle (ForUpdate, ForQuery, ForWatch)
+//// Format[EXCHANGESET, JSON, JAVA] | Connector
+//// ChangeLog
+
+// Update, Query, Watch
+// Update-> (Changeset
+
+// ChangeSets (Basically, Upload and S-100 ExchangeSet) is a changeset
+  From Connector->Products*
+  
+
+// Subscription
+//// PersistentSubscriber
+////  
+
+// DataSet Querying
+//// Generic GML (S-100), ProductType, Geography, Valid?)  
+  
+//// ProductAction
+////// UPLOAD_GML
+////// QUERY
+
+// ProductStorageKind
+
+
+
+// Har jeg en generisk subscription????
+
+
+Gemmer alt her
+S100GmlDatasetEntity
+  -> Feature
+  -> InformationFeature, String->String
+  
+Har en produkt specifikt faetter som bruges til soegning
+Jeg tror det er vejen frem...
+S124Dataset -> S100GmlDatasetEntity
+
+// https://www.linkedin.com/advice/1/what-best-ways-manage-time-series-data-tjdjf

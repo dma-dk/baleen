@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<ns4:Dataset xmlns:ns1="http://www.opengis.net/gml/3.2" xmlns:ns2="http://www.iho.int/s100gml/5.0" xmlns:ns3="http://www.w3.org/1999/xlink" xmlns:ns4="http://www.iho.int/S201/gml/cs0/1.0" ns1:id="urn:mrn:test:201:a3931774-9ff5-4514-8db4-89ea33a0d07d">
+    <ns1:boundedBy>
+        <ns1:Envelope srsName="EPSG:4326">
+            <ns1:lowerCorner>60.6342333 -1.3116167</ns1:lowerCorner>
+            <ns1:upperCorner>60.6342333 -1.3116167</ns1:upperCorner>
+        </ns1:Envelope>
+    </ns1:boundedBy>
+    <ns2:DatasetIdentificationInformation>
+        <ns2:encodingSpecification>S100 Part 10b</ns2:encodingSpecification>
+        <ns2:encodingSpecificationEdition>1.0</ns2:encodingSpecificationEdition>
+        <ns2:productIdentifier>S-201</ns2:productIdentifier>
+        <ns2:productEdition>0.0.1</ns2:productEdition>
+        <ns2:applicationProfile>AtoN Service</ns2:applicationProfile>
+        <ns2:datasetFileIdentifier>AtonDatasetForAton.uk.point-of-fethaland-sector</ns2:datasetFileIdentifier>
+        <ns2:datasetTitle>GRAD e-Navigation S-201 Dataset</ns2:datasetTitle>
+        <ns2:datasetReferenceDate>20241217</ns2:datasetReferenceDate>
+        <ns2:datasetLanguage>eng</ns2:datasetLanguage>
+        <ns2:datasetTopicCategory>oceans</ns2:datasetTopicCategory>
+    </ns2:DatasetIdentificationInformation>
+    <ns4:members>
+        <ns4:Lighthouse xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="ns4:LighthouseType" ns1:id="ID-ATON-1">
+            <ns1:boundedBy xsi:nil="true"/>
+            <ns4:idCode>aton.uk.point-of-fethaland-sector</ns4:idCode>
+            <ns4:scaleMinimum>0</ns4:scaleMinimum>
+            <ns4:featureName>
+                <ns4:displayName>true</ns4:displayName>
+                <ns4:language>eng</ns4:language>
+                <ns4:name>POINT OF FETHALAND SECTOR</ns4:name>
+            </ns4:featureName>
+            <ns4:information>
+                <ns4:language>eng</ns4:language>
+                <ns4:text>No change considered necessary</ns4:text>
+            </ns4:information>
+            <ns4:child ns3:href="#ID-ATON-656" ns3:role="child" ns3:arcrole="urn:IALA:s201:roles:child"/>
+            <ns4:categoryOfLandmark>tower</ns4:categoryOfLandmark>
+            <ns4:colour>white</ns4:colour>
+            <ns4:radarConspicuous>radar conspicuous</ns4:radarConspicuous>
+            <ns4:visualProminence>visually conspicuous</ns4:visualProminence>
+            <ns4:function>light support</ns4:function>
+            <ns4:status>permanent</ns4:status>
+            <ns4:geometry>
+                <ns2:pointProperty>
+                    <ns2:Point>
+                        <ns1:pos>60.6342333 -1.3116167</ns1:pos>
+                    </ns2:Point>
+                </ns2:pointProperty>
+            </ns4:geometry>
+        </ns4:Lighthouse>
+    </ns4:members>
+</ns4:Dataset>
