@@ -23,25 +23,33 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.stereotype.Component;
+
+import jakarta.annotation.Priority;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.ws.rs.Priorities;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerRequestFilter;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.UriInfo;
 import jakarta.ws.rs.ext.Provider;
-import reactor.netty.http.server.HttpServerRequest;
 
 /**
  * Extracts the MRN from the header of the request
  */
 @Provider
+@Component
+@Priority(Priorities.AUTHORIZATION)
 public class MRNExtractorRequestFilter implements ContainerRequestFilter {
+
+    public static final String MRN_ATTRIBUTE = "X-MRN";
 
     @Context
     UriInfo info;
 
     @Context
-    HttpServerRequest request;
+    HttpServletRequest req;
 //
 //    @Inject
 //    RoutingContext routingContext;
@@ -116,5 +124,21 @@ public class MRNExtractorRequestFilter implements ContainerRequestFilter {
 
     /** {@inheritDoc} */
     @Override
-    public void filter(ContainerRequestContext requestContext) throws IOException {}
+    public void filter(ContainerRequestContext requestContext) throws IOException {
+        String headerString = requestContext.getHeaderString("X-Secom-Cert");
+        // Caddy sends this String, if not configured correctly
+        // {http.request.tls.client.certificate_der_base64}
+        if (headerString != null && !headerString.equals("{http.request.tls.client.certificate_der_base64}")) {
+            try {
+                // extract the certificate from header string
+                X509Certificate cert = convertToX509Certificate(headerString);
+                String mrn = extractUIDFromCertificate(cert);
+                req.setAttribute(MRN_ATTRIBUTE, mrn);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("No Header string");
+        }
+    }
 }

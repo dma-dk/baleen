@@ -33,13 +33,13 @@ import org.grad.secom.springboot3.components.SecomConfigProperties;
 /**
  *
  */
-public final class BaleenSecomClient {
+public final class BaleenSecomClient2 {
 
     private final URI uri;
 
     SecomClient client;
 
-    public BaleenSecomClient(URI uri, SecomConfigProperties config)
+    public BaleenSecomClient2(URI uri, SecomConfigProperties config)
             throws IOException, KeyStoreException, NoSuchAlgorithmException, CertificateException, UnrecoverableKeyException {
         this.client = new SecomClient(uri.toURL(), config);
         this.uri = uri;

@@ -16,7 +16,6 @@
 package dk.dma.baleen.connector.web.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
-
 import dk.dma.baleen.connector.web.WebConnector;
 import dk.dma.baleen.product.dto.DatasetUploadDto;
 import jakarta.ws.rs.POST;
@@ -25,15 +24,14 @@ import jakarta.ws.rs.Path;
 /**
  *
  */
-@Path("/api")
-public class AbstractBaleenUploadController {
+public class BaleenUploadController {
 
     @Autowired
     WebConnector service;
 
     // Should validate the client
     @POST
-    @Path("upload")
+    @Path("uploadFuture")
     public String accept(DatasetUploadDto upload) {
         System.out.println("Recieved " + upload);
         service.update(upload);

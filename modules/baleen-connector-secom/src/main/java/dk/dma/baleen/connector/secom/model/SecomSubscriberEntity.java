@@ -64,9 +64,6 @@ public class SecomSubscriberEntity {
     @Column(name = "id")
     private UUID id;
 
-    @Column
-    private boolean isActive;
-
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "node_id", nullable = false)
     private SecomNodeEntity node;
@@ -175,21 +172,6 @@ public class SecomSubscriberEntity {
      */
     public String getWkt() {
         return originalWkt;
-    }
-
-    /**
-     * @return the isActive
-     */
-    public boolean isActive() {
-        return isActive;
-    }
-
-    /**
-     * @param isActive
-     *            the isActive to set
-     */
-    public void setActive(boolean isActive) {
-        this.isActive = isActive;
     }
 
     /**

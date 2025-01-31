@@ -62,8 +62,14 @@ public class SecomSubscriptionController extends AbstractSecomController impleme
     /** {@inheritDoc} */
     @Override
     public SubscriptionResponseObject subscription(@Valid SubscriptionRequestObject request) {
-        UUID subscriptionIdentifier = secom.subscribe(mrn(), request);
-
+        UUID subscriptionIdentifier;
+        try {
+        subscriptionIdentifier = secom.subscribe(mrn(), request);
+        }
+        catch (Throwable t) {
+            t.printStackTrace();
+            throw t;
+        }
         SubscriptionResponseObject response = new SubscriptionResponseObject();
         response.setSubscriptionIdentifier(subscriptionIdentifier);
         response.setMessage("Subscription completed successfully");

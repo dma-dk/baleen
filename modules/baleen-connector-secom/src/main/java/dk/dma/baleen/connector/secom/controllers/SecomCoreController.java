@@ -27,14 +27,14 @@ import org.grad.secom.core.interfaces.PingSecomInterface;
 import org.grad.secom.core.models.CapabilityResponseObject;
 import org.grad.secom.core.models.PingResponseObject;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
 
 import dk.dma.baleen.connector.secom.service.SecomCoreService;
 import jakarta.ws.rs.Path;
 
 /** Implements {@link CapabilitySecomInterface}. */
-@Component
+@Controller
 @Path("/")
 @Validated
 public class SecomCoreController extends AbstractSecomController implements CapabilitySecomInterface , PingSecomInterface {
@@ -44,7 +44,6 @@ public class SecomCoreController extends AbstractSecomController implements Capa
     @Autowired
     public SecomCoreController(SecomCoreService coreService) {
         this.coreService = requireNonNull(coreService);
-
     }
 
     /** {@inheritDoc} */

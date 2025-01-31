@@ -24,6 +24,13 @@
             <artifactId>baleen-connector-secom</artifactId>
             <version>${project.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>baleen-connector-web</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         
         <dependency>
             <groupId>${project.groupId}</groupId>

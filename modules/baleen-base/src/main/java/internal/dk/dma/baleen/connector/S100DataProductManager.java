@@ -45,9 +45,12 @@ public class S100DataProductManager {
         this.products = List.copyOf(implementations); // make immutable
         productMap = implementations.stream().collect(Collectors.toMap(f -> f.type, f -> f));
         this.supportedProducts = Collections.unmodifiableSortedSet(new TreeSet<>(productMap.keySet()));
+
     }
 
     public List<CapabilityObject> allCapabilities() {
+        System.out.println("Have " + products.size());
+
         return products.stream().flatMap(product -> product.secomCapabilities().stream()).toList();
     }
 

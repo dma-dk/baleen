@@ -15,6 +15,7 @@
  */
 package dk.dma.baleen.product.s124.service;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
@@ -29,13 +30,18 @@ import org.grad.secom.core.models.enums.SECOM_DataProductType;
 import org.locationtech.jts.geom.Geometry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
 
 import dk.baleen.s100.xmlbindings.s124.v1_0_0.utils.S124Utils;
+import dk.dma.baleen.connector.secom.serviceold.SecomSubscriberService;
+import dk.dma.baleen.connector.secom.serviceold.TransmissibleDatasetGenerator;
 import dk.dma.baleen.connector.secom.util.MRNToUUID;
 import dk.dma.baleen.product.dto.DatasetUploadGmlDto;
+import dk.dma.baleen.product.s124.NiordApiCaller;
+import dk.dma.baleen.product.s124.NiordApiCaller.Result;
 import dk.dma.baleen.product.s124.S124SupportedVersions;
 import dk.dma.baleen.product.s124.model.S124DatasetInstanceEntity;
 import dk.dma.baleen.product.s124.repository.S124DatasetInstanceRepository;
@@ -55,6 +61,9 @@ public class S124Service extends S100DataProductService {
 
     @Autowired
     S124DatasetInstanceRepository repository;
+
+    @Autowired
+    SecomSubscriberService subscriberService;
 
     public S124Service() {
         super(S100DataProductType.S124);
@@ -76,24 +85,62 @@ public class S124Service extends S100DataProductService {
             capabilityObject.setDataProductType(SECOM_DataProductType.S124);
             capabilityObject.setImplementedInterfaces(implementedInterfaces);
             capabilityObject.setServiceVersion(v.serviceVersion());
+
+            all.add(capabilityObject);
         }
         return List.copyOf(all);
     }
 
+    @Autowired
+    NiordApiCaller niordApi;
+
     /** {@inheritDoc} */
     @Override
     public Page<? extends DataSet> findAll(@Nullable UUID uuid, Geometry geometry, LocalDateTime fromTime, LocalDateTime toTime, Pageable pageable) {
-        return repository.findDatasets(uuid, geometry, fromTime, toTime, pageable);
+//        return repository.findDatasets(uuid, geometry, fromTime, toTime, pageable);
+        return getStatic();
+    }
+
+    private Page<? extends DataSet> getStatic() {
+        List<DataSet> l = new ArrayList<>();
+        List<Result> fetchAll = niordApi.getIt();
+        for (Result result : fetchAll) {
+            l.add(new DataSet() {
+
+                @Override
+                public UUID uuid() {
+                    return UUID.randomUUID();
+                }
+
+                @Override
+                public byte[] toByteArray() {
+                    return result.xml().getBytes(StandardCharsets.UTF_8);
+                }
+            });
+        }
+        // Set Data (Xml document)
+        return new PageImpl<DataSet>(l);
     }
 
     /** {@inheritDoc} */
     @Override
     public void upload(DatasetUploadGmlDto d) throws Exception {
-        if (!d.dataProductVersion().equals(S124SupportedVersions.V1_0_0.productVersion())) {
-            throw new IllegalArgumentException(
-                    "Version " + d.dataProductVersion() + " not support for upload, supported versions=" + S124SupportedVersions.V1_0_0.serviceVersion());
-        }
-        Dataset dataset = S124Utils.unmarshallS124(d.gml());
+//        if (!d.dataProductVersion().equals(S124SupportedVersions.V1_0_0.productVersion())) {
+//            throw new IllegalArgumentException(
+//                    "Version " + d.dataProductVersion() + " not support for upload, supported versions=" + S124SupportedVersions.V1_0_0.serviceVersion());
+//        }
+        String gml = d.gml();
+        upload(gml);
+    }
+
+    /** {@inheritDoc} */
+    public void upload(String gml) throws Exception {
+//        if (!d.dataProductVersion().equals(S124SupportedVersions.V1_0_0.productVersion())) {
+//            throw new IllegalArgumentException(
+//                    "Version " + d.dataProductVersion() + " not support for upload, supported versions=" + S124SupportedVersions.V1_0_0.serviceVersion());
+//        }
+
+        Dataset dataset = S124Utils.unmarshallS124(gml);
 
         UUID uuid = MRNToUUID.createUUIDFromMRN(dataset.getId());
 
@@ -104,7 +151,8 @@ public class S124Service extends S100DataProductService {
         S124DatasetInstanceEntity entity = new S124DatasetInstanceEntity();
 
         // Set basic properties
-        entity.setDataProductVersion(d.dataProductVersion());
+        //entity.setDataProductVersion(d.dataProductVersion());
+        entity.setDataProductVersion("1.0.0");
         entity.setUuid(uuid); // Generate new UUID for this instance
 
         // Convert geometries.
@@ -112,7 +160,7 @@ public class S124Service extends S100DataProductService {
         entity.setGeometry(geometry);
 
         // Store the original XML
-        entity.setGml(d.gml());
+        entity.setGml(gml);
 
         // Set validity
         NAVWARNPreamble preamble = S124DatasetReader.findPreamble(dataset);
@@ -141,8 +189,20 @@ public class S124Service extends S100DataProductService {
         }
 
         // Save the entity
-        repository.save(entity);
+  //      repository.save(entity);
 
+        subscriberService.publish(SECOM_DataProductType.S124, "1.0.0", uuid, geometry, new TransmissibleDatasetGenerator() {
+
+            @Override
+            protected byte[] createExchangeSet() {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            protected byte[] createDataset() {
+                return gml.getBytes(StandardCharsets.UTF_8);
+            }
+        });
         // Notify subscripers.
 
         // Tror faktisk den skal vaere single threaded, og i samme transaction.
@@ -150,4 +210,43 @@ public class S124Service extends S100DataProductService {
         /// Dataset (As string?), Product Type
         /// We probably have a special GML notification instead of a generic one
     }
+
+
+//    /**
+//     * @param doc
+//     */
+//    @Transactional
+//    public void publish(String doc) {
+//        List<SubscriptionEntity> list = sr.findAll().list();
+//        System.out.println("Publish xml to " + list.size() + " subscribers");
+//        for (SubscriptionEntity e : list) {
+//            try {
+//                publish(e, e.getMrn(), doc);
+//            } catch (Exception e1) {
+//                e1.printStackTrace();
+//            }
+//        }
+//    }
+//
+//    void publish(SubscriptionEntity e, String mrn, String doc) throws Exception {
+//        System.out.println("Publish to " + mrn);
+//        // Build the data envelope
+//        EnvelopeUploadObject envelopeUploadObject = new EnvelopeUploadObject();
+//        envelopeUploadObject.setDataProductType(SECOM_DataProductType.S124);
+//        envelopeUploadObject.setFromSubscription(true);
+//        envelopeUploadObject.setAckRequest(AckRequestEnum.DELIVERED_ACK_REQUESTED);
+//        envelopeUploadObject.setTransactionIdentifier(UUID.randomUUID());
+//
+//        envelopeUploadObject.setContainerType(ContainerTypeEnum.S100_DataSet);
+//        // s125Dataset.getDatasetContent().getContent().getBytes()
+//        envelopeUploadObject.setData(doc.getBytes());
+//
+//        // Set the envelope to the upload object
+//        UploadObject uploadObject = new UploadObject();
+//        uploadObject.setEnvelope(envelopeUploadObject);
+//
+//        SecomClient sc = finder.resolve(mrn);
+//        System.out.println("Publish to host " + sc.baseUri);
+//        sc.upload(uploadObject, null);
+//    }
 }

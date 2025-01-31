@@ -38,10 +38,11 @@ public interface S124DatasetInstanceRepository extends JpaRepository<S124Dataset
     @Query("""
             SELECT s FROM S124DatasetInstanceEntity s
             WHERE (:uuid IS NULL OR s.uuid = :uuid)
-            AND (:geometry IS NULL OR ST_Intersects(s.geometry, :geometry) = true)
             AND (:fromTime IS NULL OR s.validTo >= :fromTime)
             AND (:toTime IS NULL OR s.validFrom <= :toTime)
             """)
+// removed             AND (:geometry IS NULL OR ST_Intersects(s.geometry, :geometry) = true)
+
     Page<S124DatasetInstanceEntity> findDatasets(
             @Param("uuid") UUID uuid,
             @Param("geometry") Geometry geometry,

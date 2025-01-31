@@ -100,6 +100,7 @@ public class NiordApiCaller {
 
         ArrayList<Result> result = new ArrayList<>();
         if (response.statusCode() == 200) {
+           // System.out.println("Got response, reading");
             JsonNode jsonArray = objectMapper.readTree(response.body());
             for (JsonNode jsonObject : jsonArray) {
                 String id = jsonObject.path("id").asText();

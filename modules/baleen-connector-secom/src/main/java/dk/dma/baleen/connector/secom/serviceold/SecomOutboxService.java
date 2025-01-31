@@ -17,33 +17,42 @@ package dk.dma.baleen.connector.secom.serviceold;
 
 import org.grad.secom.core.models.SubscriptionNotificationObject;
 import org.grad.secom.core.models.UploadObject;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import dk.dma.baleen.connector.secom.service.SecomServiceRegistryService;
 import dk.dma.baleen.connector.secom.spi.AuthenticatedMcpNode;
 import dk.dma.baleen.connector.secom.util.BaleenSecomClient;
 
 /**
  *
  */
-// Tror kun den bliver brugt indirecte af andre secom services
 @Service
 class SecomOutboxService {
 
-    void sendTo(AuthenticatedMcpNode node, SecomOperationType operation, Object message) {
+    @Autowired
+    SecomServiceRegistryService serviceRegistry;
 
+    void sendTo(AuthenticatedMcpNode node, SecomOperationType operation, Object message) {
+        BaleenSecomClient client = serviceRegistry.resolveMRN(node.mrn());
+        operation.sendTo(message, client);
     }
 
     public enum SecomOperationType {
         SUBSCRIPTION_NOTIFICATION {
             @Override
             protected void sendTo(Object o, BaleenSecomClient service) {
+                System.out.println("Sending totificateion");
                 service.subscriptionNotification((SubscriptionNotificationObject) o);
+                System.out.println("Sending totificateion Done");
             }
         },
         UPLOAD {
             @Override
             protected void sendTo(Object o, BaleenSecomClient service) {
+                System.out.println("Uploading to " + service.uri());
                 service.upload((UploadObject) o);
+                System.out.println("Uploading completed");
             }
         };
 

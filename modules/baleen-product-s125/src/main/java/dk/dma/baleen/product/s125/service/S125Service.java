@@ -70,6 +70,8 @@ public class S125Service extends S100DataProductService {
             capabilityObject.setDataProductType(SECOM_DataProductType.S125);
             capabilityObject.setImplementedInterfaces(implementedInterfaces);
             capabilityObject.setServiceVersion(v.serviceVersion());
+
+            all.add(capabilityObject);
         }
         return List.copyOf(all);
     }

@@ -26,6 +26,7 @@ import java.security.PrivateKey;
 import java.security.Signature;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
+import java.util.Enumeration;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -77,6 +78,16 @@ public class MCPSecurityService {
         this.truststore = loadTrustStore(config);
         this.config = requireNonNull(config);
         MCP_SERVICE_CERTIFICATE = requireNonNull(loadCertificate(keystore));
+
+        Enumeration<String> aliases = truststore.aliases();
+        while (aliases.hasMoreElements()) {
+            String alias = aliases.nextElement();
+            System.out.println(alias);
+            // Process each alias here
+        }
+
+//        truststore.aliases();
+
         MCP_ROOT_CERTIFICATE = (X509Certificate) requireNonNull(truststore.getCertificate(trustStoreRootAlias()));
         PRIVATE_KEY = (PrivateKey) requireNonNull(keystore.getKey(KEYSTORE_ALIAS, config.keyStorePassword().toCharArray()));
     }
@@ -187,7 +198,7 @@ public class MCPSecurityService {
     }
 
     public String trustStoreRootAlias() {
-        return "urn:mrn:mcp:ca:mcc:mcp";
+        return "mcp identity registry (mcp root certificate)";// "urn:mrn:mcp:ca:mcc:mcp";
     }
 
     private static X509Certificate loadCertificate(KeyStore keystore) throws Exception {

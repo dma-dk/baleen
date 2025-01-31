@@ -15,28 +15,32 @@
  */
 package dk.dma.baleen.connector.secom.controllers;
 
-import java.net.http.HttpHeaders;
-
 import org.grad.secom.core.exceptions.SecomInvalidCertificateException;
 import org.grad.secom.core.exceptions.SecomValidationException;
 import org.grad.secom.core.models.AbstractEnvelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.io.ParseException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.Nullable;
 
 import dk.dma.baleen.connector.secom.util.UnLoCode;
 import dk.dma.baleen.connector.secom.util.WKTUtils;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * A SECOM controller.
  */
 abstract class AbstractSecomController {
 
-    // @Autowired
-    HttpHeaders httpHeaders;
+    /**
+     * The Request Context.
+     */
+    @Autowired
+    HttpServletRequest httpServletRequest;
 
     SecomNode mrn() {
-        return new SecomNode("");
+        String mrn = (String) httpServletRequest.getAttribute("X-MRN");
+        return new SecomNode(mrn);
     }
 
     static <T extends AbstractEnvelope> T check(@Nullable T envelope) {

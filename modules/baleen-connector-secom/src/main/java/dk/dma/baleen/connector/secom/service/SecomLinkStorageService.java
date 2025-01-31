@@ -43,8 +43,10 @@ public class SecomLinkStorageService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SecomLinkStorageService.class);
 
+    /** A repository handling links */
     private final SecomUploadedLinkRepository linkRepository;
 
+    /** A repository handling nodes. */
     private final SecomNodeRepository nodeRepository;
 
     @Autowired

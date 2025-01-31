@@ -70,6 +70,8 @@ public class S201Service extends S100DataProductService {
             capabilityObject.setDataProductType(SECOM_DataProductType.S201);
             capabilityObject.setImplementedInterfaces(implementedInterfaces);
             capabilityObject.setServiceVersion(v.serviceVersion());
+
+            all.add(capabilityObject);
         }
         return List.copyOf(all);
     }

@@ -15,6 +15,9 @@
  */
 package dk.dma.baleen.connector.secom.serviceold;
 
+import static java.util.Objects.requireNonNull;
+
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -26,6 +29,7 @@ import org.grad.secom.core.models.SubscriptionRequestObject;
 import org.grad.secom.core.models.UploadObject;
 import org.grad.secom.core.models.enums.AckRequestEnum;
 import org.grad.secom.core.models.enums.ContainerTypeEnum;
+import org.grad.secom.core.models.enums.SECOM_DataProductType;
 import org.grad.secom.core.models.enums.SubscriptionEventEnum;
 import org.locationtech.jts.geom.Geometry;
 import org.slf4j.Logger;
@@ -35,8 +39,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import dk.dma.baleen.connector.secom.controllers.SecomNode;
+import dk.dma.baleen.connector.secom.model.SecomNodeEntity;
 import dk.dma.baleen.connector.secom.model.SecomSubscriberEntity;
 import dk.dma.baleen.connector.secom.model.SecomTransactionalUploadEntity;
+import dk.dma.baleen.connector.secom.repository.SecomNodeRepository;
 import dk.dma.baleen.connector.secom.repository.SecomSubscriberRepository;
 import dk.dma.baleen.connector.secom.repository.SecomUploadRepository;
 import dk.dma.baleen.connector.secom.repository.SecomUploadedLinkRepository;
@@ -69,49 +75,48 @@ public class SecomSubscriberService {
     /** {@inheritDoc} */
     public void onPublication(Object message) {}
 
-    // DataProduct, PreviousArea, newArea
-    public void onStateUpdate(Geometry previousArea, Geometry newArea) {
-
-    }
-
     @Transactional
-    public void publish(String doc) {
-        List<SecomSubscriberEntity> subscribers = subscriptionRepository.findAll();
-        logger.info("Publishing XML to {} subscribers", subscribers.size());
+    public void publish(SECOM_DataProductType dataProductType, String productVersion, UUID dataReference, Geometry geometry,
+            TransmissibleDatasetGenerator generator) {
+        List<SecomSubscriberEntity> subscribers = subscriptionRepository.findActiveSubscribers(dataProductType, productVersion, dataReference, geometry,
+                Instant.now());
+        System.out.println("Found " + subscribers.size() + " subscribers");
+        for (SecomSubscriberEntity e : subscribers) {
+            SecomTransactionalUploadEntity upl = new SecomTransactionalUploadEntity();
+//            upl = uploRepository.save(upl);
 
-        subscribers.forEach(subscriber -> {
-            try {
-                publish0(subscriber, subscriber.getNode().getMrn(), doc);
-            } catch (Exception e) {
-                logger.error("Failed to publish to subscriber {}", subscriber.getNode().getMrn(), e);
-            }
-        });
+            // Build the data envelope
+            EnvelopeUploadObject envelope = new EnvelopeUploadObject();
+            envelope.setDataProductType(dataProductType);
+            envelope.setFromSubscription(true);
+            envelope.setAckRequest(AckRequestEnum.DELIVERED_ACK_REQUESTED);
+            envelope.setTransactionIdentifier(upl.getTransactionIdentifier());
+            envelope.setContainerType(ContainerTypeEnum.S100_DataSet);
+
+            envelope.setData(generator.getDataset());
+            requireNonNull(envelope.getData());
+//
+//            if (e.getContainerType() == ContainerTypeEnum.S100_DataSet) {
+//                envelope.setData(generator.getDataset());
+//            } else if (e.getContainerType() == ContainerTypeEnum.S100_ExchangeSet) {
+//                envelope.setData(generator.getExchangeSet());
+//            }
+
+            // Set the envelope to the upload object
+            UploadObject uploadObject = new UploadObject();
+            uploadObject.setEnvelope(envelope);
+
+            outbox.sendTo(new SecomNode(e.getNode().getMrn()), SecomOperationType.UPLOAD, uploadObject);
+        }
     }
 
-    private void publish0(SecomSubscriberEntity entity, String mrn, String doc) throws Exception {
-        logger.info("Publishing to {}", mrn);
-
-        SecomTransactionalUploadEntity e = new SecomTransactionalUploadEntity();
-        e = uploRepository.save(e);
-
-        // Build the data envelope
-        EnvelopeUploadObject envelope = new EnvelopeUploadObject();
-        envelope.setDataProductType(entity.getDataProductType());
-        envelope.setFromSubscription(true);
-        envelope.setAckRequest(AckRequestEnum.DELIVERED_ACK_REQUESTED);
-        envelope.setTransactionIdentifier(e.getTransactionIdentifier());
-        envelope.setContainerType(ContainerTypeEnum.S100_DataSet);
-        envelope.setData(doc.getBytes());
-
-        // Set the envelope to the upload object
-        UploadObject uploadObject = new UploadObject();
-        uploadObject.setEnvelope(envelope);
-
-        outbox.sendTo(new SecomNode(mrn), SecomOperationType.UPLOAD, uploadObject);
-    }
+    @Autowired
+    SecomNodeRepository nodeRepository;
 
     @Transactional
     public UUID subscribe(SecomNode node, SubscriptionRequestObject request) {
+
+        logger.info("Subscription created from {}", node.mrn());
 
         // For now we only allow 1 subscription per mrn
         Optional<SecomSubscriberEntity> existing = subscriptionRepository.findByNode_Mrn(node.mrn());
@@ -121,7 +126,10 @@ public class SecomSubscriberService {
         }
 
         SecomSubscriberEntity subscription = new SecomSubscriberEntity();
-        subscription.getNode().setMrn(node.mrn());
+
+        SecomNodeEntity sne = nodeRepository.findOrCreate(node.mrn());
+
+        subscription.setNode(sne);
 
         subscriptionRepository.save(subscription);
         UUID uuid = subscription.getId();
@@ -133,7 +141,6 @@ public class SecomSubscriberService {
         notification.setEventEnum(SubscriptionEventEnum.SUBSCRIPTION_CREATED);
         outbox.sendTo(node, SecomOperationType.SUBSCRIPTION_NOTIFICATION, notification);
         return uuid;
-
     }
 
     /**

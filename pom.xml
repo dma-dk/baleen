@@ -16,7 +16,7 @@
   <description>Baleen Root POM</description>
   <!-- ==================================================================== -->
   <properties>
-    <version.secomlib>0.0.48</version.secomlib>
+    <version.secomlib>0.0.50</version.secomlib>
 
     <java.version>21</java.version>
   

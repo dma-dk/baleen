@@ -15,10 +15,16 @@
  */
 package dk.dma.baleen.connector.secom.repository;
 
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.grad.secom.core.models.enums.SECOM_DataProductType;
+import org.locationtech.jts.geom.Geometry;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import dk.dma.baleen.connector.secom.model.SecomSubscriberEntity;
@@ -28,6 +34,24 @@ public interface SecomSubscriberRepository extends JpaRepository<SecomSubscriber
 
     // This will join with secom_node table through the node relationship
     Optional<SecomSubscriberEntity> findByNode_Mrn(String mrn);
+
+    // Find active subscribers matching the criteria
+    @Query("SELECT s FROM SecomSubscriberEntity s " + ""
+            /*         "WHERE s.dataProductType = :dataProductType " +
+           "AND s.productVersion = :productVersion " +
+           "AND s.subscriptionStart <= :now " +
+           "AND s.subscriptionEnd >= :now " +
+        "AND s.isActive = true " +
+           "AND (:dataReference IS NULL OR (s.dataReference IS NOT NULL AND s.dataReference = :dataReference))" // +
+  /*         "AND (:geometry IS NULL OR ST_Intersects(s.geometry, :geometry) = true)" */
+)
+    List<SecomSubscriberEntity> findActiveSubscribers(
+            @Param("dataProductType") SECOM_DataProductType dataProductType,
+            @Param("productVersion") String productVersion,
+            @Param("dataReference") UUID dataReference,
+            @Param("geometry") Geometry geometry,
+            @Param("now") Instant now
+    );
 
     static String toID(String mrn, UUID uuid) {
         return mrn + uuid.toString();

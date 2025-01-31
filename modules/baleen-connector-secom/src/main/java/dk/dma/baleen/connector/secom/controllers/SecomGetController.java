@@ -84,6 +84,9 @@ public class SecomGetController extends AbstractSecomController implements GetSe
         if (containerType == ContainerTypeEnum.NONE) {
             throw new SecomValidationException("NONE cannot be specified for containerType");
         }
+        if (containerType == null) {
+            containerType = ContainerTypeEnum.S100_DataSet;
+        }
 
         // Find all data from th
         Page<? extends DataSet> data = get0(dataReference, dataProductType, productVersion, geometry, unlocode, validFrom, validTo, page, pageSize);

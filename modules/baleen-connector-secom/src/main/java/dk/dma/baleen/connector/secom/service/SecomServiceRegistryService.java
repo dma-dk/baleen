@@ -41,7 +41,7 @@ public final class SecomServiceRegistryService {
     private SecomConfigProperties secomConfig;
 
     /** A SECOM client to the service registry. */
-    private SecomClient serviceRegistryClient;
+    private BaleenSecomClient serviceRegistryClient;
 
     @Autowired
     SecomServiceRegistryService(@Value("${secom.service-registry.url:}") String serviceRegistryUrl, SecomConfigProperties secomConfig) {
@@ -57,7 +57,10 @@ public final class SecomServiceRegistryService {
 
         // If this fails, app will fail to start
         URI uri = URI.create(serviceRegistryUrl);
-        serviceRegistryClient = new BaleenSecomClient(uri, secomConfig);
+      //  secomConfig.setTruststore(null);
+        SecomConfigProperties scp =new SecomConfigProperties();
+        scp.setInsecureSslPolicy(true);
+        serviceRegistryClient = new BaleenSecomClient(uri, scp);
     }
 
     public BaleenSecomClient resolveMRN(String mrn) {
@@ -65,6 +68,8 @@ public final class SecomServiceRegistryService {
         if (serviceRegistryClient == null) {
             throw new SecomValidationException("Application has been shutdown");
         }
+
+        logger.info("Resolving MRN: {}", mrn);
 
         // Create the search object
         SearchFilterObject filter = new SearchFilterObject();
@@ -76,6 +81,8 @@ public final class SecomServiceRegistryService {
         SearchObjectResult result = serviceRegistryClient.searchService(filter, 0, Integer.MAX_VALUE).map(ResponseSearchObject::getSearchServiceResult)
                 .orElse(List.of()).stream().max(Comparator.comparing(SearchObjectResult::getVersion))
                 .orElseThrow(() -> new SecomNotFoundException(String.format("The MRN %s was not registered as a service with %s", mrn, serviceRegistryClient)));
+
+        logger.info("Resolving MRN as: {}", result.getEndpointUri());
 
         // We got a result from the service registry. Create and return a SecomClients
         try {
