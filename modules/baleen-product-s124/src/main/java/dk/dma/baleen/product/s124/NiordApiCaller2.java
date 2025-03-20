@@ -111,7 +111,7 @@ public class NiordApiCaller2 {
                 String mainType = jsonObject.path("mainType").asText();
 
                 if ("NW".equals(mainType) && shortId != null && !shortId.isEmpty()) {
-                    String xmlUrl = endpoint + "/rest/S-124-MaDaMe/messages/" + id;
+                    String xmlUrl = endpoint + "/rest/S-124/messages/" + id;
                     HttpRequest xmlRequest = HttpRequest.newBuilder().uri(URI.create(xmlUrl)).GET().build();
 
                     HttpResponse<String> xmlResponse = client.send(xmlRequest, HttpResponse.BodyHandlers.ofString());
@@ -119,6 +119,8 @@ public class NiordApiCaller2 {
 
                     Dataset dm = null;
                     try {
+                        System.out.println(xmlUrl);
+                        System.out.println(datasetString);
                         dm = S124Utils.unmarshallS124(datasetString);
                     } catch (Exception e) {
                         logger.error("Could not deserialize dataset for shortId: {}", shortId, e);
