@@ -108,7 +108,7 @@ public class NiordApiCaller {
                 String mainType = jsonObject.path("mainType").asText();
 
                 if ("NW".equals(mainType) && shortId != null && !shortId.isEmpty()) {
-                    String xmlUrl = endpoint + "/rest/S-124-MaDaMe/messages/" + id;
+                    String xmlUrl = endpoint + "/rest/S-124/messages/" + id;
                     HttpRequest xmlRequest = HttpRequest.newBuilder().uri(URI.create(xmlUrl)).GET().build();
 
                     HttpResponse<String> xmlResponse = client.send(xmlRequest, HttpResponse.BodyHandlers.ofString());
