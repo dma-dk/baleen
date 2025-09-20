@@ -1,0 +1,33 @@
+databaseChangeLog:
+  - changeSet:
+      id: 001-enable-h2gis-spatial-functions
+      author: baleen
+      dbms: h2
+      context: default
+      comment: "Enable H2GIS spatial functions for H2 database"
+      changes:
+        - sql:
+            sql: |
+              CREATE ALIAS IF NOT EXISTS H2GIS_SPATIAL FOR "org.h2gis.functions.factory.H2GISFunctions.load";
+              CALL H2GIS_SPATIAL();
+      rollback:
+        - sql:
+            sql: "DROP ALIAS IF EXISTS H2GIS_SPATIAL;"
+
+  - changeSet:
+      id: 001-enable-postgis-extension
+      author: baleen
+      dbms: postgresql
+      context: default
+      comment: "Enable PostGIS extension for PostgreSQL database"
+      preConditions:
+        - onFail: CONTINUE
+        - sqlCheck:
+            expectedResult: 0
+            sql: "SELECT COUNT(*) FROM pg_extension WHERE extname = 'postgis'"
+      changes:
+        - sql:
+            sql: "CREATE EXTENSION IF NOT EXISTS postgis;"
+      rollback:
+        - sql:
+            sql: "DROP EXTENSION IF EXISTS postgis CASCADE;"

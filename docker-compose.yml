@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    container_name: baleen-postgres
+    environment:
+      POSTGRES_DB: baleen
+      POSTGRES_USER: baleen
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-baleen123}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./src/main/resources/schema-postgresql.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U baleen -d baleen"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  baleen:
+    build: .
+    container_name: baleen-app
+    environment:
+      # Override defaults to use PostgreSQL for docker-compose
+      DATABASE_TYPE: postgresql
+      DATABASE_URL: jdbc:postgresql://postgres:5432/baleen
+      DATABASE_USERNAME: baleen
+      DATABASE_PASSWORD: ${DB_PASSWORD:-baleen123}
+      DATABASE_DRIVER: org.postgresql.Driver
+      DDL_AUTO: update
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  postgres_data:

@@ -1,0 +1,25 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-create-setting-entity-table
+      author: baleen
+      context: default
+      comment: "Create the SettingEntity table for application configuration"
+      changes:
+        - createTable:
+            tableName: setting_entity
+            columns:
+              - column:
+                  name: setting_key
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_setting_entity
+              - column:
+                  name: setting_value
+                  type: VARCHAR(1000)
+                  constraints:
+                    nullable: true
+      rollback:
+        - dropTable:
+            tableName: setting_entity
