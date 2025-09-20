@@ -1,23 +1,5 @@
-# Multi-stage Docker build for Spring Boot application
+# Simple Docker image for pre-built Spring Boot JAR
 
-# Stage 1: Build the application
-FROM eclipse-temurin:21-jdk as builder
-
-WORKDIR /app
-
-# Copy Maven files for dependency caching
-COPY pom.xml .
-
-# Download dependencies (this layer will be cached if pom.xml doesn't change)
-RUN mvn dependency:go-offline -B
-
-# Copy source code
-COPY src ./src
-
-# Build the application
-RUN mvn clean package -DskipTests -B
-
-# Stage 2: Create the runtime image
 FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
@@ -26,8 +8,8 @@ WORKDIR /app
 RUN addgroup -g 1001 -S appgroup && \
     adduser -u 1001 -S appuser -G appgroup
 
-# Copy the JAR file from the builder stage
-COPY --from=builder /app/target/baleen-*.jar app.jar
+# Copy the pre-built JAR file (built by GitHub Actions)
+COPY target/baleen-*.jar app.jar
 
 # Change ownership of the app directory
 RUN chown -R appuser:appgroup /app
