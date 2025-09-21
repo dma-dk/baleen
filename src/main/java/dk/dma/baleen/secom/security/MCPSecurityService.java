@@ -78,11 +78,11 @@ public class MCPSecurityService {
     }
 
     private MCPSecurityService(MCPSecurityConfig config, ResourceLoader resourceLoader) throws Exception {
+        this.resourceLoader = requireNonNull(resourceLoader);
         this.keystore = loadKeyStore(config);
         this.truststore = loadTrustStore(config);
         this.config = requireNonNull(config);
         MCP_SERVICE_CERTIFICATE = requireNonNull(loadCertificate(keystore));
-        this.resourceLoader = resourceLoader;
         
         Enumeration<String> aliases = truststore.aliases();
         while (aliases.hasMoreElements()) {

@@ -26,7 +26,6 @@ services:
       DATABASE_USERNAME: baleen
       DATABASE_PASSWORD: ${DB_PASSWORD:-baleen123}
       DATABASE_DRIVER: org.postgresql.Driver
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
     ports:
       - "8080:8080"
     depends_on:
