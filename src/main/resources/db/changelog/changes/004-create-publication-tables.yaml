@@ -17,7 +17,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: envelope_upload_object
-                  type: blob
+                  type: ${blob.type}
                   constraints:
                     nullable: false
               - column:

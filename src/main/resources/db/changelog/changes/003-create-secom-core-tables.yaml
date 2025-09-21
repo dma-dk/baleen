@@ -117,7 +117,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: data
-                  type: clob
+                  type: ${clob.type}
               - column:
                   name: expires_at
                   type: TIMESTAMP
@@ -176,7 +176,7 @@ databaseChangeLog:
                   type: VARCHAR(255)
               - column:
                   name: original_wkt
-                  type: clob
+                  type: ${clob.type}
               - column:
                   name: product_version
                   type: VARCHAR(255)
