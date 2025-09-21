@@ -39,6 +39,8 @@ import org.grad.secom.springboot3.components.SecomConfigProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 
 /**
@@ -51,7 +53,7 @@ public class MCPSecurityService {
     private static final String KEYSTORE_ALIAS = "1";
 
     /** The logger of this class. */
-    private static final Logger LOOGER = LoggerFactory.getLogger(MCPSecurityService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(MCPSecurityService.class);
 
     /** The configuration of this class. */
     final MCPSecurityConfig config;
@@ -68,17 +70,20 @@ public class MCPSecurityService {
 
     private final KeyStore truststore;
 
+    private final ResourceLoader resourceLoader;
+    
     @Autowired
-    public MCPSecurityService(SecomConfigProperties config) throws Exception {
-        this(new MCPSecurityConfig(config));
+    public MCPSecurityService(SecomConfigProperties config, ResourceLoader resourceLoader) throws Exception {
+        this(new MCPSecurityConfig(config), resourceLoader);
     }
 
-    private MCPSecurityService(MCPSecurityConfig config) throws Exception {
+    private MCPSecurityService(MCPSecurityConfig config, ResourceLoader resourceLoader) throws Exception {
         this.keystore = loadKeyStore(config);
         this.truststore = loadTrustStore(config);
         this.config = requireNonNull(config);
         MCP_SERVICE_CERTIFICATE = requireNonNull(loadCertificate(keystore));
-
+        this.resourceLoader = resourceLoader;
+        
         Enumeration<String> aliases = truststore.aliases();
         while (aliases.hasMoreElements()) {
             String alias = aliases.nextElement();
@@ -93,15 +98,21 @@ public class MCPSecurityService {
     }
 
     private KeyStore loadKeyStore(MCPSecurityConfig config) throws Exception {
-        KeyStore keyStore = KeyStore.getInstance("PKCS12");
-        try (InputStream keyStoreStream = MCPSecurityService.class.getClassLoader().getResourceAsStream(config.keyStoreFile())) {
-            if (keyStoreStream == null) {
-                throw new IllegalArgumentException("Keystore not found in classpath");
-            }
-            keyStore.load(keyStoreStream, config.keyStorePassword().toCharArray());
+        String location = config.keyStoreFile(); // e.g. "classpath:secom/keystore.p12" or "/run/secrets/keystore.p12"
+        Resource resource = resourceLoader.getResource(location.startsWith("classpath:") || location.startsWith("file:")
+            ? location
+            : (location.startsWith("/") ? "file:" + location : "classpath:" + location));
+
+        if (!resource.exists()) {
+          throw new IllegalArgumentException("Keystore not found at: " + location);
         }
-        LOOGER.info("Loaded keystore from: " + config.keyStoreFile());
-        return keyStore;
+
+        KeyStore ks = KeyStore.getInstance("PKCS12");
+        try (InputStream in = resource.getInputStream()) {
+          ks.load(in, config.keyStorePassword().toCharArray());
+        }
+        LOGGER.info("Loaded keystore from: {}", location);
+        return ks;
     }
 
     private KeyStore loadTrustStore(MCPSecurityConfig config) throws Exception {
@@ -112,7 +123,7 @@ public class MCPSecurityService {
             }
             trustStore.load(trustStoreStream, config.trustStorePassword().toCharArray());
         }
-        LOOGER.info("Loaded keystore from: " + config.trustStoreFile());
+        LOGGER.info("Loaded keystore from: " + config.trustStoreFile());
         return trustStore;
 
     }
