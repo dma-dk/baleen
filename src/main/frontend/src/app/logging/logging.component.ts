@@ -4,201 +4,138 @@ import { FormsModule } from '@angular/forms';
 import { LoggingService, LogEntry } from '../services/logging.service';
 import { Subscription } from 'rxjs';
 import { CookieService } from 'ngx-cookie-service';
+import { TableModule } from 'primeng/table';
+import { ButtonModule } from 'primeng/button';
+import { CardModule } from 'primeng/card';
+import { DropdownModule } from 'primeng/dropdown';
+import { CheckboxModule } from 'primeng/checkbox';
+import { TagModule } from 'primeng/tag';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ConfirmationService } from 'primeng/api';
 
 @Component({
   selector: 'app-logging',
   standalone: true,
-  imports: [CommonModule, FormsModule],
-  providers: [CookieService],
+  imports: [CommonModule, FormsModule, TableModule, ButtonModule, CardModule, DropdownModule, CheckboxModule, TagModule, ConfirmDialogModule],
+  providers: [CookieService, ConfirmationService],
   template: `
-    <div class="page-container">
-      <header class="page-header">
-        <h1>System Logs</h1>
-        <p>Real-time system log monitoring</p>
-      </header>
-
-      <div class="controls">
-        <div class="button-group">
-          <button (click)="toggleAutoRefresh()" [class.active]="autoRefresh" class="btn-secondary">
-            {{ autoRefresh ? '⏸️ Pause' : '▶️ Resume' }}
-          </button>
-          <button (click)="refreshLogs()" class="btn-primary">
-            🔄 Refresh
-          </button>
-          <button (click)="clearLogs()" class="btn-danger">
-            🗑️ Clear Logs
-          </button>
-        </div>
-        
-        <div class="filter-group">
-          <label>Level Filter:</label>
-          <select [(ngModel)]="levelFilter" (change)="applyFilter()" class="form-control">
-            <option value="">All Levels</option>
-            <option value="ERROR">ERROR</option>
-            <option value="WARN">WARN</option>
-            <option value="INFO">INFO</option>
-            <option value="DEBUG">DEBUG</option>
-            <option value="TRACE">TRACE</option>
-          </select>
-          
-          <label class="form-checkbox">
-            <input type="checkbox" [(ngModel)]="followLogs" (change)="onFollowLogsChange()">
-            Follow logs
-          </label>
-        </div>
+    <div class="space-y-6">
+      <!-- Header -->
+      <div class="mb-6">
+        <h1 class="text-3xl font-semibold text-color mb-2">System Logs</h1>
+        <p class="text-muted-color">Real-time system log monitoring</p>
       </div>
 
-      <div class="log-viewer">
-        <div class="log-count">
-          Showing {{ filteredLogs.length }} of {{ logs.length }} logs
+      <!-- Controls -->
+      <p-card class="mb-6">
+        <div class="flex justify-between items-center flex-wrap gap-4">
+          <div class="flex gap-2">
+            <p-button
+              [label]="autoRefresh ? 'Pause' : 'Resume'"
+              [icon]="autoRefresh ? 'pi pi-pause' : 'pi pi-play'"
+              [severity]="autoRefresh ? 'success' : 'secondary'"
+              (onClick)="toggleAutoRefresh()">
+            </p-button>
+            <p-button
+              label="Refresh"
+              icon="pi pi-refresh"
+              (onClick)="refreshLogs()">
+            </p-button>
+            <p-button
+              label="Clear Logs"
+              icon="pi pi-trash"
+              severity="danger"
+              (onClick)="clearLogs()">
+            </p-button>
+          </div>
+
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+              <label class="font-medium text-color">Level Filter:</label>
+              <p-dropdown
+                [(ngModel)]="levelFilter"
+                [options]="levelOptions"
+                optionLabel="label"
+                optionValue="value"
+                placeholder="All Levels"
+                (onChange)="applyFilter()"
+                styleClass="w-40">
+              </p-dropdown>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <p-checkbox
+                [(ngModel)]="followLogs"
+                [binary]="true"
+                inputId="followLogs"
+                (onChange)="onFollowLogsChange()">
+              </p-checkbox>
+              <label for="followLogs" class="font-medium text-color">Follow logs</label>
+            </div>
+          </div>
         </div>
-        
-        <div class="log-table-wrapper" #logTableWrapper>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th class="timestamp-col">Timestamp</th>
-                <th class="level-col">Level</th>
-                <th class="logger-col">Logger</th>
-                <th class="message-col">Message</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let log of filteredLogs" [class]="'log-' + log.level.toLowerCase()">
-                <td class="timestamp-col">{{ log.timestamp }}</td>
-                <td class="level-col">
-                  <span class="level-badge" [class]="'level-' + log.level.toLowerCase()">
-                    {{ log.level }}
-                  </span>
-                </td>
-                <td class="logger-col" [title]="log.logger">{{ truncateLogger(log.logger) }}</td>
-                <td class="message-col">{{ log.message }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+      </p-card>
+
+      <!-- Log Table -->
+      <p-card>
+        <p-table
+          [value]="filteredLogs"
+          [scrollable]="true"
+          scrollHeight="600px"
+          styleClass="p-datatable-sm">
+
+          <ng-template pTemplate="caption">
+            <div class="flex justify-between items-center">
+              <span class="text-lg font-medium">System Logs</span>
+              <span class="text-muted-color text-sm">
+                Showing {{ filteredLogs.length }} of {{ logs.length }} logs
+              </span>
+            </div>
+          </ng-template>
+
+          <ng-template pTemplate="header">
+            <tr>
+              <th style="width: 200px">Timestamp</th>
+              <th style="width: 80px" class="text-center">Level</th>
+              <th style="width: 200px">Logger</th>
+              <th>Message</th>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="body" let-log>
+            <tr [class]="getLogRowClass(log.level)">
+              <td class="font-mono text-sm">{{ log.timestamp }}</td>
+              <td class="text-center">
+                <p-tag
+                  [value]="log.level"
+                  [severity]="getLogSeverity(log.level)"
+                  styleClass="text-xs">
+                </p-tag>
+              </td>
+              <td class="font-mono text-sm" [title]="log.logger">{{ truncateLogger(log.logger) }}</td>
+              <td>{{ log.message }}</td>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="4" class="text-center py-8">
+                <div class="text-muted-color">
+                  <i class="pi pi-info-circle text-3xl mb-2 block"></i>
+                  <p>No logs available.</p>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+
+        </p-table>
+      </p-card>
+
+      <!-- Confirmation Dialog -->
+      <p-confirmDialog></p-confirmDialog>
     </div>
   `,
-  styles: [`
-    .btn-secondary.active {
-      background-color: #28a745;
-    }
-
-    .btn-secondary.active:hover {
-      background-color: #218838;
-    }
-
-    .filter-group {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .filter-group label {
-      font-weight: 500;
-      color: #495057;
-    }
-
-    .form-control {
-      width: auto;
-      min-width: 150px;
-    }
-
-    .log-viewer {
-      flex: 1;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .log-count {
-      padding: 1rem;
-      background-color: #f8f9fa;
-      border-bottom: 1px solid #dee2e6;
-      font-size: 0.875rem;
-      color: #6c757d;
-    }
-
-    .log-table-wrapper {
-      flex: 1;
-      overflow: auto;
-    }
-
-    .timestamp-col {
-      width: 220px;
-      min-width: 220px;
-      font-family: monospace;
-      font-size: 0.8rem;
-      white-space: nowrap;
-    }
-
-    .level-col {
-      width: 80px;
-      text-align: center;
-    }
-
-    .logger-col {
-      width: 180px;
-      min-width: 180px;
-      font-family: monospace;
-      font-size: 0.8rem;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .message-col {
-      min-width: 300px;
-    }
-
-    .level-badge {
-      display: inline-block;
-      padding: 0.25rem 0.5rem;
-      border-radius: 3px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      min-width: 50px;
-      text-align: center;
-    }
-
-    .level-error {
-      background-color: #f8d7da;
-      color: #721c24;
-    }
-
-    .level-warn {
-      background-color: #fff3cd;
-      color: #856404;
-    }
-
-    .level-info {
-      background-color: #d1ecf1;
-      color: #0c5460;
-    }
-
-    .level-debug {
-      background-color: #d4edda;
-      color: #155724;
-    }
-
-    .level-trace {
-      background-color: #e2e3e5;
-      color: #383d41;
-    }
-
-    .log-error {
-      background-color: #fff5f5;
-    }
-
-    .log-warn {
-      background-color: #fffaf0;
-    }
-  `]
+  styles: []
 })
 export class LoggingComponent implements OnInit, OnDestroy, AfterViewChecked {
   @ViewChild('logTableWrapper') private logTableWrapper!: ElementRef;
@@ -212,7 +149,19 @@ export class LoggingComponent implements OnInit, OnDestroy, AfterViewChecked {
   private shouldScrollToBottom = false;
   private cookieService = inject(CookieService);
 
-  constructor(private loggingService: LoggingService) {}
+  levelOptions = [
+    { label: 'All Levels', value: '' },
+    { label: 'ERROR', value: 'ERROR' },
+    { label: 'WARN', value: 'WARN' },
+    { label: 'INFO', value: 'INFO' },
+    { label: 'DEBUG', value: 'DEBUG' },
+    { label: 'TRACE', value: 'TRACE' }
+  ];
+
+  constructor(
+    private loggingService: LoggingService,
+    private confirmationService: ConfirmationService
+  ) {}
 
   ngOnInit() {
     this.loadFollowLogsFromCookie();
@@ -271,12 +220,18 @@ export class LoggingComponent implements OnInit, OnDestroy, AfterViewChecked {
   }
 
   clearLogs() {
-    if (confirm('Are you sure you want to clear all logs?')) {
-      this.loggingService.clearLogs().subscribe(() => {
-        this.logs = [];
-        this.filteredLogs = [];
-      });
-    }
+    this.confirmationService.confirm({
+      message: 'Are you sure you want to clear all logs? This action cannot be undone!',
+      header: 'Confirm Clear',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: () => {
+        this.loggingService.clearLogs().subscribe(() => {
+          this.logs = [];
+          this.filteredLogs = [];
+        });
+      }
+    });
   }
 
 
@@ -327,5 +282,24 @@ export class LoggingComponent implements OnInit, OnDestroy, AfterViewChecked {
   
   private saveLevelFilterToCookie() {
     this.cookieService.set('logLevelFilter', this.levelFilter, 365);
+  }
+
+  getLogSeverity(level: string): string {
+    switch (level) {
+      case 'ERROR': return 'danger';
+      case 'WARN': return 'warning';
+      case 'INFO': return 'info';
+      case 'DEBUG': return 'success';
+      case 'TRACE': return 'secondary';
+      default: return 'secondary';
+    }
+  }
+
+  getLogRowClass(level: string): string {
+    switch (level) {
+      case 'ERROR': return 'bg-red-50';
+      case 'WARN': return 'bg-yellow-50';
+      default: return '';
+    }
   }
 }

@@ -1,488 +1,225 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { S124DatasetService, S124Dataset, S124DatasetDetail } from '../services/s124-dataset.service';
+import { TableModule } from 'primeng/table';
+import { ButtonModule } from 'primeng/button';
+import { CardModule } from 'primeng/card';
+import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ToastModule } from 'primeng/toast';
+import { TagModule } from 'primeng/tag';
+import { DialogModule } from 'primeng/dialog';
+import { TabViewModule } from 'primeng/tabview';
+import { ConfirmationService, MessageService } from 'primeng/api';
 
 @Component({
   selector: 'app-s124-datasets',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, TableModule, ButtonModule, CardModule, ConfirmDialogModule, ToastModule, TagModule, DialogModule, TabViewModule],
+  providers: [ConfirmationService, MessageService],
   template: `
-    <div class="page-container">
-      <header class="page-header">
-        <h1>S-124 Datasets</h1>
-        <p>Manage and view all S-124 navigational warning datasets</p>
-      </header>
+    <div class="space-y-6">
+      <!-- Header -->
+      <div class="mb-6">
+        <h1 class="text-3xl font-semibold text-color mb-2">S-124 Datasets</h1>
+        <p class="text-muted-color">Manage and view all S-124 navigational warning datasets</p>
+      </div>
 
-      <!-- Confirmation Dialog -->
-      <div *ngIf="showConfirmDialog" class="dialog-overlay" (click)="cancelClearAll()">
-        <div class="dialog" (click)="$event.stopPropagation()">
-          <h3>Confirm Delete</h3>
-          <p>{{ confirmMessage }}</p>
-          <p class="warning">This action cannot be undone!</p>
-          <div class="dialog-buttons">
-            <button class="btn-secondary" (click)="cancelClearAll()">Cancel</button>
-            <button class="btn-danger" (click)="executeConfirmedAction()">{{ confirmButtonText }}</button>
+      <!-- Controls -->
+      <p-card class="mb-6">
+        <div class="flex justify-between items-center flex-wrap gap-4">
+          <div class="flex gap-2">
+            <p-button
+              label="Refresh"
+              icon="pi pi-refresh"
+              (onClick)="refreshDatasets()"
+              [loading]="loading">
+            </p-button>
+            <p-button
+              label="Clear All"
+              icon="pi pi-trash"
+              severity="danger"
+              (onClick)="showClearConfirmation()"
+              [disabled]="datasets.length === 0 || loading">
+            </p-button>
+            <p-button
+              *ngIf="niordConfigured"
+              label="Reload from Niord"
+              icon="pi pi-download"
+              (onClick)="showReloadConfirmation()"
+              [disabled]="loading">
+            </p-button>
+          </div>
+
+          <div class="text-muted-color text-sm">
+            Total datasets: {{ totalElements }}
           </div>
         </div>
-      </div>
+      </p-card>
+
+      <!-- Data Table -->
+      <p-card>
+        <p-table
+          [value]="datasets"
+          [loading]="loading"
+          [paginator]="true"
+          [rows]="pageSize"
+          [showCurrentPageReport]="true"
+          currentPageReportTemplate="Showing {first} to {last} of {totalRecords} entries"
+          [rowsPerPageOptions]="[10, 20, 50]"
+          styleClass="p-datatable-striped">
+
+          <ng-template pTemplate="caption">
+            <div class="flex justify-between items-center">
+              <span class="text-lg font-medium">S-124 Datasets</span>
+            </div>
+          </ng-template>
+
+          <ng-template pTemplate="header">
+            <tr>
+              <th pSortableColumn="id">
+                ID <p-sortIcon field="id"></p-sortIcon>
+              </th>
+              <th pSortableColumn="mrn">
+                MRN <p-sortIcon field="mrn"></p-sortIcon>
+              </th>
+              <th pSortableColumn="uuid">
+                UUID <p-sortIcon field="uuid"></p-sortIcon>
+              </th>
+              <th pSortableColumn="dataProductVersion">
+                Version <p-sortIcon field="dataProductVersion"></p-sortIcon>
+              </th>
+              <th pSortableColumn="validFrom">
+                Valid From <p-sortIcon field="validFrom"></p-sortIcon>
+              </th>
+              <th pSortableColumn="validTo">
+                Valid To <p-sortIcon field="validTo"></p-sortIcon>
+              </th>
+              <th pSortableColumn="createdAt">
+                Created <p-sortIcon field="createdAt"></p-sortIcon>
+              </th>
+              <th>References</th>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="body" let-dataset>
+            <tr class="cursor-pointer" (click)="showDatasetDetails(dataset.id)">
+              <td>{{ dataset.id }}</td>
+              <td class="font-mono text-sm">{{ dataset.mrn || 'N/A' }}</td>
+              <td class="font-mono text-sm">{{ dataset.uuid ? (dataset.uuid.substring(0, 8) + '...') : 'N/A' }}</td>
+              <td>{{ dataset.dataProductVersion || 'N/A' }}</td>
+              <td>{{ formatDate(dataset.validFrom) }}</td>
+              <td>{{ formatDate(dataset.validTo) }}</td>
+              <td>{{ formatDate(dataset.createdAt) }}</td>
+              <td>
+                <p-tag
+                  [value]="dataset.referencedDatasetIds.length.toString()"
+                  severity="info">
+                </p-tag>
+              </td>
+            </tr>
+          </ng-template>
+
+          <ng-template pTemplate="emptymessage">
+            <tr>
+              <td colspan="8" class="text-center py-8">
+                <div class="text-muted-color">
+                  <i class="pi pi-info-circle text-3xl mb-2 block"></i>
+                  <p>{{ error || 'No datasets found.' }}</p>
+                </div>
+              </td>
+            </tr>
+          </ng-template>
+
+        </p-table>
+      </p-card>
 
       <!-- Dataset Details Dialog -->
-      <div *ngIf="showDetailsDialog && selectedDatasetDetail" class="dialog-overlay" (click)="closeDetailsDialog()">
-        <div class="details-dialog" (click)="$event.stopPropagation()">
-          <div class="details-header">
-            <h3>Dataset Details</h3>
-            <button class="close-btn" (click)="closeDetailsDialog()">×</button>
-          </div>
-          
-          <div class="details-content">
-            <div class="details-tabs">
-              <button 
-                class="tab-btn" 
-                [class.active]="activeTab === 'attributes'"
-                (click)="activeTab = 'attributes'">
-                Attributes
-              </button>
-              <button 
-                class="tab-btn" 
-                [class.active]="activeTab === 'gml'"
-                (click)="activeTab = 'gml'">
-                GML Content
-              </button>
-            </div>
+      <p-dialog
+        [(visible)]="showDetailsDialog"
+        [modal]="true"
+        [closable]="true"
+        [draggable]="false"
+        [resizable]="false"
+        header="Dataset Details"
+        styleClass="w-11/12 max-w-4xl">
 
-            <div class="tab-content">
-              <!-- Attributes Tab -->
-              <div *ngIf="activeTab === 'attributes'" class="attributes-tab">
-                <div class="attribute-grid">
-                  <div class="attribute-row">
-                    <label>ID:</label>
-                    <span>{{ selectedDatasetDetail.id }}</span>
-                  </div>
-                  <div class="attribute-row">
-                    <label>MRN:</label>
-                    <span class="monospace">{{ selectedDatasetDetail.mrn || 'N/A' }}</span>
-                  </div>
-                  <div class="attribute-row">
-                    <label>UUID:</label>
-                    <span class="monospace">{{ selectedDatasetDetail.uuid || 'N/A' }}</span>
-                  </div>
-                  <div class="attribute-row">
-                    <label>Data Product Version:</label>
-                    <span>{{ selectedDatasetDetail.dataProductVersion || 'N/A' }}</span>
-                  </div>
-                  <div class="attribute-row">
-                    <label>Valid From:</label>
-                    <span>{{ formatDate(selectedDatasetDetail.validFrom) }}</span>
-                  </div>
-                  <div class="attribute-row">
-                    <label>Valid To:</label>
-                    <span>{{ formatDate(selectedDatasetDetail.validTo) }}</span>
-                  </div>
-                  <div class="attribute-row">
-                    <label>Created At:</label>
-                    <span>{{ formatDate(selectedDatasetDetail.createdAt) }}</span>
-                  </div>
-                  <div class="attribute-row">
-                    <label>Geometry (WKT):</label>
-                    <span class="monospace geometry-text">{{ selectedDatasetDetail.geometryWkt || 'N/A' }}</span>
-                  </div>
-                  <div class="attribute-row">
-                    <label>Referenced Datasets:</label>
-                    <span>
-                      <span class="status-badge references">
-                        {{ selectedDatasetDetail.referencedDatasetIds.length }}
-                      </span>
-                      <span *ngIf="selectedDatasetDetail.referencedDatasetIds.length > 0" class="reference-ids">
-                        ({{ selectedDatasetDetail.referencedDatasetIds.join(', ') }})
-                      </span>
-                    </span>
-                  </div>
+        <p-tabView *ngIf="selectedDatasetDetail">
+          <p-tabPanel header="Attributes">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="space-y-4">
+                <div>
+                  <label class="font-semibold text-color block mb-1">ID:</label>
+                  <span>{{ selectedDatasetDetail.id }}</span>
+                </div>
+                <div>
+                  <label class="font-semibold text-color block mb-1">MRN:</label>
+                  <span class="font-mono text-sm">{{ selectedDatasetDetail.mrn || 'N/A' }}</span>
+                </div>
+                <div>
+                  <label class="font-semibold text-color block mb-1">UUID:</label>
+                  <span class="font-mono text-sm break-all">{{ selectedDatasetDetail.uuid || 'N/A' }}</span>
+                </div>
+                <div>
+                  <label class="font-semibold text-color block mb-1">Data Product Version:</label>
+                  <span>{{ selectedDatasetDetail.dataProductVersion || 'N/A' }}</span>
                 </div>
               </div>
-
-              <!-- GML Content Tab -->
-              <div *ngIf="activeTab === 'gml'" class="gml-tab">
-                <div class="gml-header">
-                  <span class="text-muted text-small">GML/XML Content</span>
-                  <button class="btn-secondary copy-btn" (click)="copyGmlToClipboard()">
-                    📋 Copy
-                  </button>
+              <div class="space-y-4">
+                <div>
+                  <label class="font-semibold text-color block mb-1">Valid From:</label>
+                  <span>{{ formatDate(selectedDatasetDetail.validFrom) }}</span>
                 </div>
-                <pre class="gml-content">{{ selectedDatasetDetail.gml || 'No GML content available' }}</pre>
+                <div>
+                  <label class="font-semibold text-color block mb-1">Valid To:</label>
+                  <span>{{ formatDate(selectedDatasetDetail.validTo) }}</span>
+                </div>
+                <div>
+                  <label class="font-semibold text-color block mb-1">Created At:</label>
+                  <span>{{ formatDate(selectedDatasetDetail.createdAt) }}</span>
+                </div>
+                <div>
+                  <label class="font-semibold text-color block mb-1">Referenced Datasets:</label>
+                  <p-tag
+                    [value]="selectedDatasetDetail.referencedDatasetIds.length.toString()"
+                    severity="info">
+                  </p-tag>
+                  <span *ngIf="selectedDatasetDetail.referencedDatasetIds.length > 0" class="text-muted-color text-sm ml-2">
+                    ({{ selectedDatasetDetail.referencedDatasetIds.join(', ') }})
+                  </span>
+                </div>
+              </div>
+              <div class="col-span-1 md:col-span-2">
+                <label class="font-semibold text-color block mb-1">Geometry (WKT):</label>
+                <span class="font-mono text-sm break-all">{{ selectedDatasetDetail.geometryWkt || 'N/A' }}</span>
               </div>
             </div>
-          </div>
-        </div>
-      </div>
+          </p-tabPanel>
 
-      <div class="controls">
-        <div class="button-group">
-          <button (click)="refreshDatasets()" class="btn-primary">
-            🔄 Refresh
-          </button>
-          <button (click)="showClearConfirmation()" class="btn-danger" [disabled]="datasets.length === 0 || loading">
-            🗑️ Clear All
-          </button>
-          <button 
-            *ngIf="niordConfigured"
-            (click)="showReloadConfirmation()" 
-            class="btn-primary" 
-            [disabled]="loading">
-            📥 Reload from Niord
-          </button>
-        </div>
-        
-        <div class="text-muted text-small">
-          Total datasets: {{ totalElements }}
-        </div>
-      </div>
+          <p-tabPanel header="GML Content">
+            <div class="flex justify-between items-center mb-4">
+              <span class="text-muted-color text-sm">GML/XML Content</span>
+              <p-button
+                label="Copy"
+                icon="pi pi-copy"
+                size="small"
+                severity="secondary"
+                (onClick)="copyGmlToClipboard()">
+              </p-button>
+            </div>
+            <pre class="bg-surface-100 border border-surface-300 rounded-lg p-4 font-mono text-sm overflow-auto max-h-96 whitespace-pre-wrap">{{ selectedDatasetDetail.gml || 'No GML content available' }}</pre>
+          </p-tabPanel>
+        </p-tabView>
 
-      <div class="card card-flex">
+      </p-dialog>
 
-        <div *ngIf="loading" class="loading">
-          Loading datasets...
-        </div>
+      <!-- Toast Messages -->
+      <p-toast></p-toast>
 
-        <div *ngIf="error" class="error">
-          {{ error }}
-        </div>
-
-        <div *ngIf="!loading && !error && datasets.length === 0" class="no-data">
-          No datasets found.
-        </div>
-
-        <div *ngIf="!loading && !error && datasets.length > 0" class="table-wrapper">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th class="sortable-header" (click)="sortBy('id')">
-                  ID
-                  <span class="sort-indicator" [class]="getSortClass('id')">
-                    <span class="sort-arrow">↕</span>
-                  </span>
-                </th>
-                <th class="sortable-header" (click)="sortBy('mrn')">
-                  MRN
-                  <span class="sort-indicator" [class]="getSortClass('mrn')">
-                    <span class="sort-arrow">↕</span>
-                  </span>
-                </th>
-                <th class="sortable-header" (click)="sortBy('uuid')">
-                  UUID
-                  <span class="sort-indicator" [class]="getSortClass('uuid')">
-                    <span class="sort-arrow">↕</span>
-                  </span>
-                </th>
-                <th class="sortable-header" (click)="sortBy('dataProductVersion')">
-                  Version
-                  <span class="sort-indicator" [class]="getSortClass('dataProductVersion')">
-                    <span class="sort-arrow">↕</span>
-                  </span>
-                </th>
-                <th class="sortable-header" (click)="sortBy('validFrom')">
-                  Valid From
-                  <span class="sort-indicator" [class]="getSortClass('validFrom')">
-                    <span class="sort-arrow">↕</span>
-                  </span>
-                </th>
-                <th class="sortable-header" (click)="sortBy('validTo')">
-                  Valid To
-                  <span class="sort-indicator" [class]="getSortClass('validTo')">
-                    <span class="sort-arrow">↕</span>
-                  </span>
-                </th>
-                <th class="sortable-header" (click)="sortBy('createdAt')">
-                  Created
-                  <span class="sort-indicator" [class]="getSortClass('createdAt')">
-                    <span class="sort-arrow">↕</span>
-                  </span>
-                </th>
-                <th>References</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let dataset of datasets" class="clickable-row" (click)="showDatasetDetails(dataset.id)">
-                <td>{{ dataset.id }}</td>
-                <td class="mrn-cell">{{ dataset.mrn || 'N/A' }}</td>
-                <td class="uuid-cell">{{ dataset.uuid ? (dataset.uuid.substring(0, 8) + '...') : 'N/A' }}</td>
-                <td>{{ dataset.dataProductVersion || 'N/A' }}</td>
-                <td>{{ formatDate(dataset.validFrom) }}</td>
-                <td>{{ formatDate(dataset.validTo) }}</td>
-                <td>{{ formatDate(dataset.createdAt) }}</td>
-                <td>
-                  <span class="status-badge references">
-                    {{ dataset.referencedDatasetIds.length }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <div *ngIf="!loading && !error && datasets.length > 0 && totalPages > 1" class="pagination">
-          <div class="pagination-info">
-            Showing page {{ currentPage + 1 }} of {{ totalPages }}
-          </div>
-          <div class="pagination-controls">
-            <button 
-              (click)="previousPage()" 
-              [disabled]="currentPage === 0"
-              class="btn-secondary">
-              Previous
-            </button>
-            <button 
-              (click)="nextPage()" 
-              [disabled]="currentPage === totalPages - 1"
-              class="btn-secondary">
-              Next
-            </button>
-          </div>
-        </div>
-      </div>
+      <!-- Confirmation Dialog -->
+      <p-confirmDialog></p-confirmDialog>
     </div>
   `,
-  styles: [`
-    .card {
-      padding: 1.5rem;
-    }
-
-    .table-wrapper {
-      margin: -1.5rem;
-      padding: 1.5rem;
-    }
-
-    .mrn-cell, .uuid-cell {
-      font-family: monospace;
-      font-size: 0.8rem;
-    }
-
-    .status-badge {
-      display: inline-block;
-      padding: 0.25rem 0.75rem;
-      border-radius: 12px;
-      font-size: 0.75rem;
-      font-weight: 600;
-      text-transform: uppercase;
-    }
-
-    .status-badge.references {
-      background-color: #e3f2fd;
-      color: #1565c0;
-    }
-
-    .pagination {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-top: 1rem;
-      margin-top: 1rem;
-      border-top: 1px solid #e5e7eb;
-    }
-
-    .pagination-info {
-      font-size: 0.875rem;
-      color: #6b7280;
-    }
-
-    .pagination-controls {
-      display: flex;
-      gap: 0.5rem;
-    }
-
-    .clickable-row {
-      cursor: pointer;
-    }
-
-    .clickable-row:hover {
-      background-color: #f8f9fa !important;
-    }
-
-    .details-dialog {
-      background: white;
-      border-radius: 8px;
-      width: 90%;
-      max-width: 800px;
-      max-height: 90vh;
-      display: flex;
-      flex-direction: column;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-    }
-
-    .details-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1.5rem;
-      border-bottom: 1px solid #e5e7eb;
-    }
-
-    .details-header h3 {
-      margin: 0;
-      font-size: 1.25rem;
-      font-weight: 600;
-    }
-
-    .close-btn {
-      background: none;
-      border: none;
-      font-size: 1.5rem;
-      cursor: pointer;
-      padding: 0.25rem;
-      width: 2rem;
-      height: 2rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 4px;
-    }
-
-    .close-btn:hover {
-      background-color: #f3f4f6;
-    }
-
-    .details-content {
-      flex: 1;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .details-tabs {
-      display: flex;
-      border-bottom: 1px solid #e5e7eb;
-      padding: 0 1.5rem;
-    }
-
-    .tab-btn {
-      background: none;
-      border: none;
-      padding: 1rem 1.5rem;
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      color: #6b7280;
-      font-weight: 500;
-    }
-
-    .tab-btn.active {
-      color: #3b82f6;
-      border-bottom-color: #3b82f6;
-    }
-
-    .tab-btn:hover {
-      color: #374151;
-    }
-
-    .tab-content {
-      flex: 1;
-      overflow: auto;
-      padding: 1.5rem;
-    }
-
-    .attribute-grid {
-      display: grid;
-      gap: 1rem;
-    }
-
-    .attribute-row {
-      display: grid;
-      grid-template-columns: 200px 1fr;
-      gap: 1rem;
-      align-items: start;
-    }
-
-    .attribute-row label {
-      font-weight: 600;
-      color: #374151;
-    }
-
-    .monospace {
-      font-family: monospace;
-      font-size: 0.9rem;
-    }
-
-    .geometry-text {
-      word-break: break-all;
-      font-size: 0.8rem;
-    }
-
-    .reference-ids {
-      font-size: 0.875rem;
-      color: #6b7280;
-      margin-left: 0.5rem;
-    }
-
-    .gml-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-    }
-
-    .copy-btn {
-      font-size: 0.875rem;
-      padding: 0.5rem 1rem;
-    }
-
-    .gml-content {
-      background-color: #f8f9fa;
-      border: 1px solid #e5e7eb;
-      border-radius: 4px;
-      padding: 1rem;
-      font-family: monospace;
-      font-size: 0.875rem;
-      line-height: 1.5;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      overflow: auto;
-      max-height: 400px;
-    }
-
-    .sortable-header {
-      cursor: pointer;
-      user-select: none;
-      position: relative;
-      padding-right: 1.5rem !important;
-    }
-
-    .sortable-header:hover {
-      background-color: #f8f9fa;
-    }
-
-    .sort-indicator {
-      position: absolute;
-      right: 0.5rem;
-      top: 50%;
-      transform: translateY(-50%);
-      opacity: 0.5;
-      font-size: 0.75rem;
-    }
-
-    .sort-indicator.asc .sort-arrow::before {
-      content: '↑';
-      opacity: 1;
-      color: #3b82f6;
-    }
-
-    .sort-indicator.desc .sort-arrow::before {
-      content: '↓';
-      opacity: 1;
-      color: #3b82f6;
-    }
-
-    .sort-indicator.asc .sort-arrow,
-    .sort-indicator.desc .sort-arrow {
-      opacity: 0;
-    }
-
-    .sortable-header:hover .sort-indicator {
-      opacity: 0.8;
-    }
-
-    .sort-indicator.asc,
-    .sort-indicator.desc {
-      opacity: 1;
-    }
-  `]
+  styles: []
 })
 export class S124DatasetsComponent implements OnInit {
   datasets: S124Dataset[] = [];
@@ -493,17 +230,17 @@ export class S124DatasetsComponent implements OnInit {
   niordConfigured = false;
   loading = false;
   error: string | null = null;
-  showConfirmDialog = false;
-  confirmMessage = '';
-  confirmButtonText = '';
-  pendingAction: 'clear' | 'reload' | null = null;
   showDetailsDialog = false;
   selectedDatasetDetail: S124DatasetDetail | null = null;
   activeTab: 'attributes' | 'gml' = 'attributes';
   currentSortBy = 'createdAt';
   currentSortDirection: 'ASC' | 'DESC' = 'DESC';
 
-  constructor(private datasetService: S124DatasetService) { }
+  constructor(
+    private datasetService: S124DatasetService,
+    private confirmationService: ConfirmationService,
+    private messageService: MessageService
+  ) { }
 
   ngOnInit(): void {
     this.loadDatasets();
@@ -577,40 +314,32 @@ export class S124DatasetsComponent implements OnInit {
   }
 
   showClearConfirmation(): void {
-    this.confirmMessage = 'Are you sure you want to clear all datasets?';
-    this.confirmButtonText = 'Clear All';
-    this.pendingAction = 'clear';
-    this.showConfirmDialog = true;
+    this.confirmationService.confirm({
+      message: 'Are you sure you want to clear all datasets? This action cannot be undone!',
+      header: 'Confirm Delete',
+      icon: 'pi pi-exclamation-triangle',
+      acceptButtonStyleClass: 'p-button-danger',
+      accept: () => {
+        this.clearAllDatasets();
+      }
+    });
   }
 
   showReloadConfirmation(): void {
-    this.confirmMessage = 'This will clear all existing datasets and reload from Niord. Continue?';
-    this.confirmButtonText = 'Reload';
-    this.pendingAction = 'reload';
-    this.showConfirmDialog = true;
-  }
-
-  cancelClearAll(): void {
-    this.showConfirmDialog = false;
-    this.pendingAction = null;
-  }
-
-  executeConfirmedAction(): void {
-    this.showConfirmDialog = false;
-    
-    if (this.pendingAction === 'clear') {
-      this.clearAllDatasets();
-    } else if (this.pendingAction === 'reload') {
-      this.reloadFromNiord();
-    }
-    
-    this.pendingAction = null;
+    this.confirmationService.confirm({
+      message: 'This will clear all existing datasets and reload from Niord. Continue?',
+      header: 'Confirm Reload',
+      icon: 'pi pi-question-circle',
+      accept: () => {
+        this.reloadFromNiord();
+      }
+    });
   }
 
   clearAllDatasets(): void {
     this.loading = true;
     this.error = null;
-    
+
     this.datasetService.clearAllDatasets().subscribe({
       next: () => {
         this.datasets = [];
@@ -618,12 +347,21 @@ export class S124DatasetsComponent implements OnInit {
         this.totalPages = 0;
         this.currentPage = 0;
         this.loading = false;
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'All datasets have been cleared'
+        });
       },
       error: (err) => {
         console.error('Error clearing datasets:', err);
         this.error = 'Failed to clear datasets. Please try again.';
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to clear datasets. Please try again.'
+        });
         this.loading = false;
-        // Refresh the list in case some were deleted
         this.loadDatasets();
       }
     });
@@ -632,19 +370,34 @@ export class S124DatasetsComponent implements OnInit {
   reloadFromNiord(): void {
     this.loading = true;
     this.error = null;
-    
+
     this.datasetService.reloadFromNiord().subscribe({
       next: (result) => {
         if (result.success) {
           this.loadDatasets();
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Success',
+            detail: 'Datasets reloaded from Niord successfully'
+          });
         } else {
           this.error = 'Failed: ' + result.message;
+          this.messageService.add({
+            severity: 'error',
+            summary: 'Error',
+            detail: 'Failed: ' + result.message
+          });
           this.loading = false;
         }
       },
       error: (err) => {
         console.error('Error reloading from Niord:', err);
         this.error = 'Failed to reload from Niord. Please try again.';
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to reload from Niord. Please try again.'
+        });
         this.loading = false;
       }
     });
@@ -677,10 +430,18 @@ export class S124DatasetsComponent implements OnInit {
   copyGmlToClipboard(): void {
     if (this.selectedDatasetDetail?.gml) {
       navigator.clipboard.writeText(this.selectedDatasetDetail.gml).then(() => {
-        // Could add a toast notification here
-        console.log('GML content copied to clipboard');
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Success',
+          detail: 'GML content copied to clipboard'
+        });
       }).catch(err => {
         console.error('Failed to copy GML content:', err);
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Error',
+          detail: 'Failed to copy GML content'
+        });
       });
     }
   }

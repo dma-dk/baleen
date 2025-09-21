@@ -2,6 +2,9 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environments/environment';
+import { CardModule } from 'primeng/card';
+import { ButtonModule } from 'primeng/button';
+import { TagModule } from 'primeng/tag';
 
 interface AboutInfo {
   backendUrl: string;
@@ -20,146 +23,95 @@ interface DatabaseInfo {
 @Component({
   selector: 'app-about',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, CardModule, ButtonModule, TagModule],
   template: `
-    <div class="page-container">
-      <header class="page-header">
-        <h1>About</h1>
-        <p>System information and configuration</p>
-      </header>
+    <div class="space-y-6">
+      <!-- Header -->
+      <div class="mb-6">
+        <h1 class="text-3xl font-semibold text-color mb-2">About</h1>
+        <p class="text-muted-color">System information and configuration</p>
+      </div>
 
       <!-- Application Info -->
-      <div class="card mb-3">
-        <div class="card-padded">
-          <h2>Application</h2>
-          <div class="info-grid">
-            <div class="info-item">
-              <label>Backend URL:</label>
-              <span class="text-monospace">{{ aboutInfo?.backendUrl || window.location.origin }}</span>
+      <p-card header="Application Information" class="mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-muted-color">Backend URL:</label>
+            <div class="p-3 bg-surface-100 rounded-md font-mono text-sm break-all">
+              {{ aboutInfo?.backendUrl || window.location.origin }}
             </div>
-            <div class="info-item">
-              <label>Build Date:</label>
-              <span>{{ formatDate(environment.buildTimestamp) }}</span>
+          </div>
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-muted-color">Build Date:</label>
+            <div class="p-3 bg-surface-100 rounded-md text-sm">
+              {{ formatDate(environment.buildTimestamp) }}
             </div>
-            <div class="info-item">
-              <label>Version:</label>
-              <span>{{ aboutInfo?.version || 'Loading...' }}</span>
+          </div>
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-muted-color">Version:</label>
+            <div class="p-3 bg-surface-100 rounded-md text-sm">
+              {{ aboutInfo?.version || 'Loading...' }}
             </div>
           </div>
         </div>
-      </div>
+      </p-card>
 
       <!-- Database Info -->
-      <div class="card">
-        <div class="card-padded">
-          <h2>Database</h2>
-          <div class="info-grid">
-            <div class="info-item">
-              <label>URL:</label>
-              <span class="text-monospace">{{ databaseInfo?.url || 'Loading...' }}</span>
-            </div>
-            <div class="info-item">
-              <label>Username:</label>
-              <span class="text-monospace">{{ databaseInfo?.username || 'Loading...' }}</span>
-            </div>
-            <div class="info-item">
-              <label>Driver:</label>
-              <span class="text-monospace">{{ databaseInfo?.driverClassName || 'Loading...' }}</span>
-            </div>
-            <div class="info-item">
-              <label>Database Type:</label>
-              <span>{{ databaseInfo?.databaseProductName || 'Loading...' }}</span>
-            </div>
-            <div class="info-item">
-              <label>Version:</label>
-              <span>{{ databaseInfo?.databaseProductVersion || 'Loading...' }}</span>
+      <p-card header="Database Information">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-muted-color">URL:</label>
+            <div class="p-3 bg-surface-100 rounded-md font-mono text-sm break-all">
+              {{ databaseInfo?.url || 'Loading...' }}
             </div>
           </div>
-          
-          <div class="connection-test mt-3">
-            <button 
-              class="btn-primary" 
-              (click)="testConnection()"
-              [disabled]="testing">
-              {{ testing ? '⏳ Testing...' : '🔗 Test Connection' }}
-            </button>
-            <div class="test-result mt-2" [class.success]="testSuccess" [class.error]="testSuccess === false">
-              {{ testMessage }}
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-muted-color">Username:</label>
+            <div class="p-3 bg-surface-100 rounded-md font-mono text-sm">
+              {{ databaseInfo?.username || 'Loading...' }}
+            </div>
+          </div>
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-muted-color">Driver:</label>
+            <div class="p-3 bg-surface-100 rounded-md font-mono text-sm break-all">
+              {{ databaseInfo?.driverClassName || 'Loading...' }}
+            </div>
+          </div>
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-muted-color">Database Type:</label>
+            <div class="p-3 bg-surface-100 rounded-md text-sm">
+              {{ databaseInfo?.databaseProductName || 'Loading...' }}
+            </div>
+          </div>
+          <div class="space-y-2">
+            <label class="text-sm font-medium text-muted-color">Version:</label>
+            <div class="p-3 bg-surface-100 rounded-md text-sm">
+              {{ databaseInfo?.databaseProductVersion || 'Loading...' }}
             </div>
           </div>
         </div>
-      </div>
+
+        <div class="border-t pt-6">
+          <div class="flex items-center gap-4">
+            <p-button
+              label="Test Connection"
+              icon="pi pi-link"
+              (onClick)="testConnection()"
+              [loading]="testing">
+            </p-button>
+
+            <p-tag
+              *ngIf="testSuccess !== null"
+              [value]="testMessage"
+              [severity]="testSuccess ? 'success' : 'danger'"
+              [icon]="testSuccess ? 'pi pi-check' : 'pi pi-times'">
+            </p-tag>
+          </div>
+        </div>
+      </p-card>
     </div>
   `,
-  styles: [`
-    h2 {
-      font-size: 1.5rem;
-      margin-bottom: 1.5rem;
-      color: #444;
-      border-bottom: 2px solid #e0e0e0;
-      padding-bottom: 10px;
-    }
-    
-    .info-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-      gap: 15px;
-    }
-    
-    .info-item {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-    
-    .info-item label {
-      font-weight: 600;
-      color: #666;
-      font-size: 0.9rem;
-    }
-    
-    .info-item span {
-      background: #f5f5f5;
-      padding: 8px 12px;
-      border-radius: 4px;
-      font-size: 0.95rem;
-      word-break: break-all;
-    }
-    
-    .connection-test {
-      display: flex;
-      align-items: flex-start;
-      gap: 15px;
-      flex-direction: column;
-    }
-    
-    .test-result {
-      font-size: 0.95rem;
-      padding: 8px 12px;
-      border-radius: 4px;
-      display: none;
-    }
-    
-    .test-result:not(:empty) {
-      display: block;
-    }
-    
-    .test-result.success {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
-    }
-    
-    .test-result.error {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-    }
-
-    .mb-3 {
-      margin-bottom: 1.5rem;
-    }
-  `]
+  styles: []
 })
 export class AboutComponent implements OnInit {
   aboutInfo: AboutInfo | null = null;
