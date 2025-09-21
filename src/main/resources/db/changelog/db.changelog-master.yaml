@@ -2,6 +2,8 @@ databaseChangeLog:
   - include:
       file: db/changelog/changes/001-create-spatial-extensions.yaml
   - include:
-      file: db/changelog/changes/002-create-setting-table.yaml
+      file: db/changelog/changes/002-create-s124-tables.yaml
   - include:
-      file: db/changelog/changes/003-test-data.yaml
+      file: db/changelog/changes/003-create-secom-core-tables.yaml
+  - include:
+      file: db/changelog/changes/004-create-publication-tables.yaml

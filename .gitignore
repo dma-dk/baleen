@@ -10,10 +10,14 @@ generated
 .java-version
 .lucene/
 
+_diverse
 copyfrom
 
 # Angular Frontend
 src/main/frontend/node_modules/
+src/main/frontend/node/
 src/main/frontend/.angular/
 src/main/frontend/dist/
 src/main/frontend/*.log
+src/main/resources/static/
+src/main/resources/secom/keystore.p12

@@ -1,0 +1,234 @@
+databaseChangeLog:
+  - changeSet:
+      id: 002-create-s100-dataset-identification-table
+      author: baleen
+      context: default
+      comment: "Create S100DataSetIdentificationEntity table"
+      changes:
+        - createTable:
+            tableName: s100_data_set_identification_entity
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_s100_data_set_identification
+                    nullable: false
+              - column:
+                  name: encoding_specification
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: encoding_specification_edition
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: product_identifier
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: product_edition
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: application_profile
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: dataset_file_identifier
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: dataset_title
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: dataset_reference_date
+                  type: DATE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: dataset_language
+                  type: VARCHAR(3)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: dataset_abstract
+                  type: CLOB
+      rollback:
+        - dropTable:
+            tableName: s100_data_set_identification_entity
+
+  - changeSet:
+      id: 002-create-s100-gml-dataset-instance-table
+      author: baleen
+      context: default
+      comment: "Create S100GmlDatasetInstanceEntity table (mapped superclass)"
+      changes:
+        - createTable:
+            tableName: s100_gml_dataset_instance_entity
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_s100_gml_dataset_instance
+                    nullable: false
+              - column:
+                  name: created_date
+                  type: TIMESTAMP
+                  constraints:
+                    nullable: false
+              - column:
+                  name: data_product_version
+                  type: VARCHAR(255)
+              - column:
+                  name: gml
+                  type: CLOB
+      rollback:
+        - dropTable:
+            tableName: s100_gml_dataset_instance_entity
+
+  - changeSet:
+      id: 002-create-s124-dataset-instance-table
+      author: baleen
+      context: default
+      comment: "Create S124DatasetInstanceEntity table"
+      changes:
+        - createTable:
+            tableName: s124_dataset_instance_entity
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_s124_dataset_instance
+                    nullable: false
+              - column:
+                  name: geometry
+                  type: GEOMETRY
+              - column:
+                  name: mrn
+                  type: VARCHAR(255)
+                  constraints:
+                    unique: true
+              - column:
+                  name: uuid
+                  type: UUID
+                  constraints:
+                    unique: true
+              - column:
+                  name: valid_from
+                  type: TIMESTAMP
+              - column:
+                  name: valid_to
+                  type: TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: s124_dataset_instance_entity
+            baseColumnNames: id
+            referencedTableName: s100_gml_dataset_instance_entity
+            referencedColumnNames: id
+            constraintName: fk_s124_dataset_s100_gml
+            onDelete: CASCADE
+      rollback:
+        - dropTable:
+            tableName: s124_dataset_instance_entity
+
+  - changeSet:
+      id: 002-create-s124-dataset-references-table
+      author: baleen
+      context: default
+      comment: "Create s124_dataset_references join table for self-referencing relationships"
+      changes:
+        - createTable:
+            tableName: s124_dataset_references
+            columns:
+              - column:
+                  name: dataset_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: referenced_dataset_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+        - addPrimaryKey:
+            tableName: s124_dataset_references
+            columnNames: dataset_id, referenced_dataset_id
+            constraintName: pk_s124_dataset_references
+        - addForeignKeyConstraint:
+            baseTableName: s124_dataset_references
+            baseColumnNames: dataset_id
+            referencedTableName: s124_dataset_instance_entity
+            referencedColumnNames: id
+            constraintName: fk_s124_ref_dataset
+            onDelete: CASCADE
+        - addForeignKeyConstraint:
+            baseTableName: s124_dataset_references
+            baseColumnNames: referenced_dataset_id
+            referencedTableName: s124_dataset_instance_entity
+            referencedColumnNames: id
+            constraintName: fk_s124_ref_referenced_dataset
+            onDelete: CASCADE
+      rollback:
+        - dropTable:
+            tableName: s124_dataset_references
+
+  - changeSet:
+      id: 002-create-s124-indexes
+      author: baleen
+      context: default
+      comment: "Create indexes for S124 tables"
+      changes:
+        - createIndex:
+            tableName: s124_dataset_instance_entity
+            indexName: idx_s124_mrn
+            columns:
+              - column:
+                  name: mrn
+        - createIndex:
+            tableName: s124_dataset_instance_entity
+            indexName: idx_s124_uuid
+            columns:
+              - column:
+                  name: uuid
+        - createIndex:
+            tableName: s124_dataset_instance_entity
+            indexName: idx_s124_valid_period
+            columns:
+              - column:
+                  name: valid_from
+              - column:
+                  name: valid_to
+        - createIndex:
+            tableName: s100_data_set_identification_entity
+            indexName: idx_s100_dataset_file_identifier
+            columns:
+              - column:
+                  name: dataset_file_identifier
+      rollback:
+        - dropIndex:
+            tableName: s124_dataset_instance_entity
+            indexName: idx_s124_mrn
+        - dropIndex:
+            tableName: s124_dataset_instance_entity
+            indexName: idx_s124_uuid
+        - dropIndex:
+            tableName: s124_dataset_instance_entity
+            indexName: idx_s124_valid_period
+        - dropIndex:
+            tableName: s100_data_set_identification_entity
+            indexName: idx_s100_dataset_file_identifier

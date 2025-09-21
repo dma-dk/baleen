@@ -71,6 +71,11 @@
         <!-- SECOM Library -->
         <dependency>
             <groupId>org.grad.secom</groupId>
+            <artifactId>secom-core-jakarta</artifactId>
+            <version>${version.secomlib}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.grad.secom</groupId>
             <artifactId>secom-springboot3</artifactId>
             <version>${version.secomlib}</version>
         </dependency>
@@ -176,7 +181,6 @@
             <plugin>
                 <groupId>org.liquibase</groupId>
                 <artifactId>liquibase-maven-plugin</artifactId>
-                <version>4.27.0</version>
                 <configuration>
                     <propertyFile>src/main/resources/liquibase.properties</propertyFile>
                     <changeLogFile>src/main/resources/db/changelog/db.changelog-master.yaml</changeLogFile>
@@ -195,8 +199,8 @@
                     </dependency>
                 </dependencies>
             </plugin>
+            
             <!-- Frontend Maven Plugin to build Angular -->
-            <!--
             <plugin>
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
@@ -233,7 +237,6 @@
                     </execution>
                 </executions>
             </plugin>
-            -->
         </plugins>
     </build>
 </project>

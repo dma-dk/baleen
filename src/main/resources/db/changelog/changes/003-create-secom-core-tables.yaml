@@ -1,0 +1,280 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-create-secom-node-entity-table
+      author: baleen
+      context: default
+      comment: "Create SecomNodeEntity table"
+      changes:
+        - createTable:
+            tableName: secom_node_entity
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_secom_node_entity
+                    nullable: false
+              - column:
+                  name: mrn
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: last_interaction
+                  type: TIMESTAMP
+      rollback:
+        - dropTable:
+            tableName: secom_node_entity
+
+  - changeSet:
+      id: 003-create-secom-transactional-entity-table
+      author: baleen
+      context: default
+      comment: "Create SecomTransactionalEntity table (inheritance root)"
+      changes:
+        - createTable:
+            tableName: secom_transactional_entity
+            columns:
+              - column:
+                  name: transaction_identifier
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_secom_transactional
+                    nullable: false
+              - column:
+                  name: node_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: acked_at
+                  type: TIMESTAMP
+              - column:
+                  name: error
+                  type: VARCHAR(50)
+              - column:
+                  name: error_at
+                  type: TIMESTAMP
+              - column:
+                  name: opened_at
+                  type: TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: secom_transactional_entity
+            baseColumnNames: node_id
+            referencedTableName: secom_node_entity
+            referencedColumnNames: id
+            constraintName: fk_secom_transactional_node
+            onDelete: CASCADE
+      rollback:
+        - dropTable:
+            tableName: secom_transactional_entity
+
+  - changeSet:
+      id: 003-create-secom-transactional-upload-entity-table
+      author: baleen
+      context: default
+      comment: "Create SecomTransactionalUploadEntity table (inherits from SecomTransactionalEntity)"
+      changes:
+        - createTable:
+            tableName: secom_transactional_upload_entity
+            columns:
+              - column:
+                  name: transaction_identifier
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_secom_transactional_upload
+                    nullable: false
+        - addForeignKeyConstraint:
+            baseTableName: secom_transactional_upload_entity
+            baseColumnNames: transaction_identifier
+            referencedTableName: secom_transactional_entity
+            referencedColumnNames: transaction_identifier
+            constraintName: fk_secom_upload_transactional
+            onDelete: CASCADE
+      rollback:
+        - dropTable:
+            tableName: secom_transactional_upload_entity
+
+  - changeSet:
+      id: 003-create-secom-transactional-upload-link-entity-table
+      author: baleen
+      context: default
+      comment: "Create SecomTransactionalUploadLinkEntity table (inherits from SecomTransactionalEntity)"
+      changes:
+        - createTable:
+            tableName: secom_transactional_upload_link_entity
+            columns:
+              - column:
+                  name: transaction_identifier
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_secom_transactional_upload_link
+                    nullable: false
+              - column:
+                  name: data
+                  type: CLOB
+              - column:
+                  name: expires_at
+                  type: TIMESTAMP
+              - column:
+                  name: link_size
+                  type: INT
+        - addForeignKeyConstraint:
+            baseTableName: secom_transactional_upload_link_entity
+            baseColumnNames: transaction_identifier
+            referencedTableName: secom_transactional_entity
+            referencedColumnNames: transaction_identifier
+            constraintName: fk_secom_upload_link_transactional
+            onDelete: CASCADE
+      rollback:
+        - dropTable:
+            tableName: secom_transactional_upload_link_entity
+
+  - changeSet:
+      id: 003-create-secom-subscriber-table
+      author: baleen
+      context: default
+      comment: "Create secom_subscriber table"
+      changes:
+        - createTable:
+            tableName: secom_subscriber
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_secom_subscriber
+                    nullable: false
+              - column:
+                  name: node_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: callback
+                  type: VARCHAR(1000)
+              - column:
+                  name: container_type
+                  type: VARCHAR(50)
+              - column:
+                  name: data_product_type
+                  type: VARCHAR(50)
+              - column:
+                  name: data_reference
+                  type: UUID
+              - column:
+                  name: geometry
+                  type: GEOMETRY
+              - column:
+                  name: original_unlocode
+                  type: VARCHAR(255)
+              - column:
+                  name: original_wkt
+                  type: CLOB
+              - column:
+                  name: product_version
+                  type: VARCHAR(255)
+              - column:
+                  name: subscription_start
+                  type: TIMESTAMP
+              - column:
+                  name: subscription_end
+                  type: TIMESTAMP
+        - addForeignKeyConstraint:
+            baseTableName: secom_subscriber
+            baseColumnNames: node_id
+            referencedTableName: secom_node_entity
+            referencedColumnNames: id
+            constraintName: fk_secom_subscriber_node
+            onDelete: CASCADE
+      rollback:
+        - dropTable:
+            tableName: secom_subscriber
+
+  - changeSet:
+      id: 003-create-secom-core-indexes
+      author: baleen
+      context: default
+      comment: "Create indexes for SECOM core tables"
+      changes:
+        - createIndex:
+            tableName: secom_node_entity
+            indexName: idx_secom_node_mrn
+            columns:
+              - column:
+                  name: mrn
+        - createIndex:
+            tableName: secom_node_entity
+            indexName: idx_secom_node_last_interaction
+            columns:
+              - column:
+                  name: last_interaction
+        - createIndex:
+            tableName: secom_transactional_entity
+            indexName: idx_secom_transactional_node_id
+            columns:
+              - column:
+                  name: node_id
+        - createIndex:
+            tableName: secom_transactional_entity
+            indexName: idx_secom_transactional_opened_at
+            columns:
+              - column:
+                  name: opened_at
+        - createIndex:
+            tableName: secom_subscriber
+            indexName: idx_secom_subscriber_node_id
+            columns:
+              - column:
+                  name: node_id
+        - createIndex:
+            tableName: secom_subscriber
+            indexName: idx_secom_subscriber_data_reference
+            columns:
+              - column:
+                  name: data_reference
+        - createIndex:
+            tableName: secom_subscriber
+            indexName: idx_secom_subscriber_subscription_period
+            columns:
+              - column:
+                  name: subscription_start
+              - column:
+                  name: subscription_end
+        - createIndex:
+            tableName: secom_transactional_upload_link_entity
+            indexName: idx_secom_upload_link_expires_at
+            columns:
+              - column:
+                  name: expires_at
+      rollback:
+        - dropIndex:
+            tableName: secom_node_entity
+            indexName: idx_secom_node_mrn
+        - dropIndex:
+            tableName: secom_node_entity
+            indexName: idx_secom_node_last_interaction
+        - dropIndex:
+            tableName: secom_transactional_entity
+            indexName: idx_secom_transactional_node_id
+        - dropIndex:
+            tableName: secom_transactional_entity
+            indexName: idx_secom_transactional_opened_at
+        - dropIndex:
+            tableName: secom_subscriber
+            indexName: idx_secom_subscriber_node_id
+        - dropIndex:
+            tableName: secom_subscriber
+            indexName: idx_secom_subscriber_data_reference
+        - dropIndex:
+            tableName: secom_subscriber
+            indexName: idx_secom_subscriber_subscription_period
+        - dropIndex:
+            tableName: secom_transactional_upload_link_entity
+            indexName: idx_secom_upload_link_expires_at
