@@ -16,17 +16,17 @@ import { ConfirmationService, MessageService } from 'primeng/api';
   imports: [CommonModule, TableModule, ButtonModule, CardModule, ConfirmDialogModule, ToastModule, TagModule, InputTextModule],
   providers: [ConfirmationService, MessageService],
   template: `
-    <div class="space-y-6">
+    <div class="space-y-8">
       <!-- Header -->
-      <div class="mb-6">
-        <h1 class="text-3xl font-semibold text-color mb-2">Subscribers</h1>
+      <div class="space-y-2">
+        <h1 class="text-3xl font-semibold text-color">Subscribers</h1>
         <p class="text-muted-color">Manage and view all SECOM subscribers</p>
       </div>
 
       <!-- Controls -->
-      <p-card class="mb-6">
+      <p-card>
         <div class="flex justify-between items-center flex-wrap gap-4">
-          <div class="flex gap-2">
+          <div class="flex gap-3">
             <p-button
               label="Refresh"
               icon="pi pi-refresh"
@@ -123,9 +123,9 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 
           <ng-template pTemplate="emptymessage">
             <tr>
-              <td colspan="8" class="text-center py-8">
-                <div class="text-muted-color">
-                  <i class="pi pi-info-circle text-3xl mb-2 block"></i>
+              <td colspan="8" class="text-center py-12">
+                <div class="text-muted-color space-y-3">
+                  <i class="pi pi-info-circle text-3xl block"></i>
                   <p>{{ error || 'No subscribers found.' }}</p>
                 </div>
               </td>

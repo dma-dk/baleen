@@ -8,14 +8,16 @@ import { CardModule } from 'primeng/card';
   standalone: true,
   imports: [CommonModule, CardModule],
   template: `
-    <div class="p-6">
-      <h1 class="text-3xl font-semibold text-color mb-2">Welcome to Baleen</h1>
-      <p class="text-muted-color">S-124 Navigational Warnings Management Platform</p>
+    <div class="space-y-8">
+      <div class="space-y-2">
+        <h1 class="text-3xl font-semibold text-color">Welcome to Baleen</h1>
+        <p class="text-muted-color">S-124 Navigational Warnings Management Platform</p>
+      </div>
 
-      <p-card header="System Information" class="mt-6">
+      <p-card header="System Information">
         <div class="flex items-center justify-between">
-          <div>
-            <p class="text-muted-color mb-2">
+          <div class="space-y-2">
+            <p class="text-muted-color">
               <strong>Build Date:</strong> {{ buildDate | date:'full' }}
             </p>
             <p class="text-muted-color">
@@ -23,8 +25,8 @@ import { CardModule } from 'primeng/card';
             </p>
           </div>
           <div class="text-right">
-            <div class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary-100 text-primary-800">
-              <i class="pi pi-check-circle mr-2"></i>
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium bg-primary-100 text-primary-800">
+              <i class="pi pi-check-circle"></i>
               System Online
             </div>
           </div>

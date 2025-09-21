@@ -20,8 +20,8 @@ import { MenuItem } from 'primeng/api';
         </div>
 
         <!-- Navigation Menu -->
-        <nav class="flex-1 py-4">
-          <ul class="space-y-1 px-3">
+        <nav class="flex-1 py-6">
+          <ul class="space-y-2 px-4">
             <li>
               <a routerLink="/home"
                  routerLinkActive="nav-link-active"
@@ -74,7 +74,7 @@ import { MenuItem } from 'primeng/api';
         </nav>
 
         <!-- Footer -->
-        <div class="p-4 border-t border-surface-600">
+        <div class="p-6 border-t border-surface-600">
           <p-button
             label="Logout"
             icon="pi pi-sign-out"
@@ -88,7 +88,7 @@ import { MenuItem } from 'primeng/api';
 
       <!-- Main Content -->
       <div class="flex-1 overflow-auto">
-        <main class="p-6">
+        <main class="p-8">
           <router-outlet></router-outlet>
         </main>
       </div>

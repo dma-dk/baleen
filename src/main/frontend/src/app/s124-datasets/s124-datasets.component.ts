@@ -17,17 +17,17 @@ import { ConfirmationService, MessageService } from 'primeng/api';
   imports: [CommonModule, TableModule, ButtonModule, CardModule, ConfirmDialogModule, ToastModule, TagModule, DialogModule, TabViewModule],
   providers: [ConfirmationService, MessageService],
   template: `
-    <div class="space-y-6">
+    <div class="space-y-8">
       <!-- Header -->
-      <div class="mb-6">
-        <h1 class="text-3xl font-semibold text-color mb-2">S-124 Datasets</h1>
+      <div class="space-y-2">
+        <h1 class="text-3xl font-semibold text-color">S-124 Datasets</h1>
         <p class="text-muted-color">Manage and view all S-124 navigational warning datasets</p>
       </div>
 
       <!-- Controls -->
-      <p-card class="mb-6">
+      <p-card>
         <div class="flex justify-between items-center flex-wrap gap-4">
-          <div class="flex gap-2">
+          <div class="flex gap-3">
             <p-button
               label="Refresh"
               icon="pi pi-refresh"
@@ -121,9 +121,9 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 
           <ng-template pTemplate="emptymessage">
             <tr>
-              <td colspan="8" class="text-center py-8">
-                <div class="text-muted-color">
-                  <i class="pi pi-info-circle text-3xl mb-2 block"></i>
+              <td colspan="8" class="text-center py-12">
+                <div class="text-muted-color space-y-3">
+                  <i class="pi pi-info-circle text-3xl block"></i>
                   <p>{{ error || 'No datasets found.' }}</p>
                 </div>
               </td>
@@ -145,68 +145,72 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 
         <p-tabView *ngIf="selectedDatasetDetail">
           <p-tabPanel header="Attributes">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div class="space-y-4">
-                <div>
-                  <label class="font-semibold text-color block mb-1">ID:</label>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div class="space-y-6">
+                <div class="space-y-1">
+                  <label class="font-semibold text-color block">ID:</label>
                   <span>{{ selectedDatasetDetail.id }}</span>
                 </div>
-                <div>
-                  <label class="font-semibold text-color block mb-1">MRN:</label>
+                <div class="space-y-1">
+                  <label class="font-semibold text-color block">MRN:</label>
                   <span class="font-mono text-sm">{{ selectedDatasetDetail.mrn || 'N/A' }}</span>
                 </div>
-                <div>
-                  <label class="font-semibold text-color block mb-1">UUID:</label>
+                <div class="space-y-1">
+                  <label class="font-semibold text-color block">UUID:</label>
                   <span class="font-mono text-sm break-all">{{ selectedDatasetDetail.uuid || 'N/A' }}</span>
                 </div>
-                <div>
-                  <label class="font-semibold text-color block mb-1">Data Product Version:</label>
+                <div class="space-y-1">
+                  <label class="font-semibold text-color block">Data Product Version:</label>
                   <span>{{ selectedDatasetDetail.dataProductVersion || 'N/A' }}</span>
                 </div>
               </div>
-              <div class="space-y-4">
-                <div>
-                  <label class="font-semibold text-color block mb-1">Valid From:</label>
+              <div class="space-y-6">
+                <div class="space-y-1">
+                  <label class="font-semibold text-color block">Valid From:</label>
                   <span>{{ formatDate(selectedDatasetDetail.validFrom) }}</span>
                 </div>
-                <div>
-                  <label class="font-semibold text-color block mb-1">Valid To:</label>
+                <div class="space-y-1">
+                  <label class="font-semibold text-color block">Valid To:</label>
                   <span>{{ formatDate(selectedDatasetDetail.validTo) }}</span>
                 </div>
-                <div>
-                  <label class="font-semibold text-color block mb-1">Created At:</label>
+                <div class="space-y-1">
+                  <label class="font-semibold text-color block">Created At:</label>
                   <span>{{ formatDate(selectedDatasetDetail.createdAt) }}</span>
                 </div>
-                <div>
-                  <label class="font-semibold text-color block mb-1">Referenced Datasets:</label>
-                  <p-tag
-                    [value]="selectedDatasetDetail.referencedDatasetIds.length.toString()"
-                    severity="info">
-                  </p-tag>
-                  <span *ngIf="selectedDatasetDetail.referencedDatasetIds.length > 0" class="text-muted-color text-sm ml-2">
-                    ({{ selectedDatasetDetail.referencedDatasetIds.join(', ') }})
-                  </span>
+                <div class="space-y-1">
+                  <label class="font-semibold text-color block">Referenced Datasets:</label>
+                  <div class="flex items-center gap-2">
+                    <p-tag
+                      [value]="selectedDatasetDetail.referencedDatasetIds.length.toString()"
+                      severity="info">
+                    </p-tag>
+                    <span *ngIf="selectedDatasetDetail.referencedDatasetIds.length > 0" class="text-muted-color text-sm">
+                      ({{ selectedDatasetDetail.referencedDatasetIds.join(', ') }})
+                    </span>
+                  </div>
                 </div>
               </div>
-              <div class="col-span-1 md:col-span-2">
-                <label class="font-semibold text-color block mb-1">Geometry (WKT):</label>
+              <div class="col-span-1 md:col-span-2 space-y-1">
+                <label class="font-semibold text-color block">Geometry (WKT):</label>
                 <span class="font-mono text-sm break-all">{{ selectedDatasetDetail.geometryWkt || 'N/A' }}</span>
               </div>
             </div>
           </p-tabPanel>
 
           <p-tabPanel header="GML Content">
-            <div class="flex justify-between items-center mb-4">
-              <span class="text-muted-color text-sm">GML/XML Content</span>
-              <p-button
-                label="Copy"
-                icon="pi pi-copy"
-                size="small"
-                severity="secondary"
-                (onClick)="copyGmlToClipboard()">
-              </p-button>
+            <div class="space-y-4">
+              <div class="flex justify-between items-center">
+                <span class="text-muted-color text-sm">GML/XML Content</span>
+                <p-button
+                  label="Copy"
+                  icon="pi pi-copy"
+                  size="small"
+                  severity="secondary"
+                  (onClick)="copyGmlToClipboard()">
+                </p-button>
+              </div>
+              <pre class="bg-surface-100 border border-surface-300 rounded-lg p-6 font-mono text-sm overflow-auto max-h-96 whitespace-pre-wrap">{{ selectedDatasetDetail.gml || 'No GML content available' }}</pre>
             </div>
-            <pre class="bg-surface-100 border border-surface-300 rounded-lg p-4 font-mono text-sm overflow-auto max-h-96 whitespace-pre-wrap">{{ selectedDatasetDetail.gml || 'No GML content available' }}</pre>
           </p-tabPanel>
         </p-tabView>
 

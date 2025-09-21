@@ -19,17 +19,17 @@ import { ConfirmationService } from 'primeng/api';
   imports: [CommonModule, FormsModule, TableModule, ButtonModule, CardModule, DropdownModule, CheckboxModule, TagModule, ConfirmDialogModule],
   providers: [CookieService, ConfirmationService],
   template: `
-    <div class="space-y-6">
+    <div class="space-y-8">
       <!-- Header -->
-      <div class="mb-6">
-        <h1 class="text-3xl font-semibold text-color mb-2">System Logs</h1>
+      <div class="space-y-2">
+        <h1 class="text-3xl font-semibold text-color">System Logs</h1>
         <p class="text-muted-color">Real-time system log monitoring</p>
       </div>
 
       <!-- Controls -->
-      <p-card class="mb-6">
+      <p-card>
         <div class="flex justify-between items-center flex-wrap gap-4">
-          <div class="flex gap-2">
+          <div class="flex gap-3">
             <p-button
               [label]="autoRefresh ? 'Pause' : 'Resume'"
               [icon]="autoRefresh ? 'pi pi-pause' : 'pi pi-play'"
@@ -119,9 +119,9 @@ import { ConfirmationService } from 'primeng/api';
 
           <ng-template pTemplate="emptymessage">
             <tr>
-              <td colspan="4" class="text-center py-8">
-                <div class="text-muted-color">
-                  <i class="pi pi-info-circle text-3xl mb-2 block"></i>
+              <td colspan="4" class="text-center py-12">
+                <div class="text-muted-color space-y-3">
+                  <i class="pi pi-info-circle text-3xl block"></i>
                   <p>No logs available.</p>
                 </div>
               </td>

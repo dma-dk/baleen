@@ -9,26 +9,26 @@ import { SkeletonModule } from 'primeng/skeleton';
   standalone: true,
   imports: [CommonModule, CardModule, SkeletonModule],
   template: `
-    <div class="space-y-6">
+    <div class="space-y-8">
       <!-- Header -->
-      <div class="mb-6">
-        <h1 class="text-3xl font-semibold text-color mb-2">Niord</h1>
+      <div class="space-y-2">
+        <h1 class="text-3xl font-semibold text-color">Niord</h1>
         <p class="text-muted-color">Manage Niord system integration settings</p>
       </div>
 
       <!-- Configuration Card -->
       <p-card header="Niord Configuration">
-        <div class="space-y-4">
-          <div *ngIf="!loading">
-            <label class="font-semibold text-color block mb-2">Niord Endpoint:</label>
-            <div class="p-3 bg-surface-100 rounded-md font-mono text-sm break-all">
+        <div class="space-y-6">
+          <div *ngIf="!loading" class="space-y-2">
+            <label class="font-semibold text-color block">Niord Endpoint:</label>
+            <div class="p-4 bg-surface-100 rounded-md font-mono text-sm break-all">
               <span *ngIf="niordEndpoint">{{ niordEndpoint }}</span>
               <span *ngIf="!niordEndpoint" class="text-muted-color">Not configured</span>
             </div>
           </div>
-          <div *ngIf="loading">
-            <label class="font-semibold text-color block mb-2">Niord Endpoint:</label>
-            <p-skeleton height="3rem" styleClass="mb-2"></p-skeleton>
+          <div *ngIf="loading" class="space-y-2">
+            <label class="font-semibold text-color block">Niord Endpoint:</label>
+            <p-skeleton height="3rem"></p-skeleton>
           </div>
         </div>
       </p-card>
