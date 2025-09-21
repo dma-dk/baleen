@@ -31,3 +31,23 @@ body {
 .text-monospace {
   font-family: monospace;
 }
+
+/* Navigation Components */
+.nav-link {
+  @apply flex items-center px-3 py-2 rounded transition-colors duration-200;
+  color: rgb(var(--p-surface-200));
+}
+
+.nav-link:hover {
+  color: rgb(var(--p-surface-0));
+  background-color: rgb(var(--p-surface-700));
+}
+
+.nav-link-active {
+  background-color: rgb(var(--p-surface-700));
+  border-left: 4px solid rgb(var(--p-primary-500));
+}
+
+.nav-icon {
+  @apply mr-3 text-lg;
+}

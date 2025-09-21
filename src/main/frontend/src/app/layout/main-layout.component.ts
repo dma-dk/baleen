@@ -24,49 +24,49 @@ import { MenuItem } from 'primeng/api';
           <ul class="space-y-1 px-3">
             <li>
               <a routerLink="/home"
-                 routerLinkActive="bg-surface-700 border-l-4 border-primary"
-                 class="flex items-center px-3 py-2 text-surface-200 hover:text-surface-0 hover:bg-surface-700 rounded transition-colors duration-200">
-                <i class="pi pi-home mr-3 text-lg"></i>
+                 routerLinkActive="nav-link-active"
+                 class="nav-link">
+                <i class="pi pi-home nav-icon"></i>
                 <span>Home</span>
               </a>
             </li>
             <li>
               <a routerLink="/subscribers"
-                 routerLinkActive="bg-surface-700 border-l-4 border-primary"
-                 class="flex items-center px-3 py-2 text-surface-200 hover:text-surface-0 hover:bg-surface-700 rounded transition-colors duration-200">
-                <i class="pi pi-users mr-3 text-lg"></i>
+                 routerLinkActive="nav-link-active"
+                 class="nav-link">
+                <i class="pi pi-users nav-icon"></i>
                 <span>Subscribers</span>
               </a>
             </li>
             <li>
               <a routerLink="/s124-datasets"
-                 routerLinkActive="bg-surface-700 border-l-4 border-primary"
-                 class="flex items-center px-3 py-2 text-surface-200 hover:text-surface-0 hover:bg-surface-700 rounded transition-colors duration-200">
-                <i class="pi pi-chart-bar mr-3 text-lg"></i>
+                 routerLinkActive="nav-link-active"
+                 class="nav-link">
+                <i class="pi pi-chart-bar nav-icon"></i>
                 <span>S-124 Datasets</span>
               </a>
             </li>
             <li>
               <a routerLink="/niord"
-                 routerLinkActive="bg-surface-700 border-l-4 border-primary"
-                 class="flex items-center px-3 py-2 text-surface-200 hover:text-surface-0 hover:bg-surface-700 rounded transition-colors duration-200">
-                <i class="pi pi-map mr-3 text-lg"></i>
+                 routerLinkActive="nav-link-active"
+                 class="nav-link">
+                <i class="pi pi-map nav-icon"></i>
                 <span>Niord</span>
               </a>
             </li>
             <li>
               <a routerLink="/logging"
-                 routerLinkActive="bg-surface-700 border-l-4 border-primary"
-                 class="flex items-center px-3 py-2 text-surface-200 hover:text-surface-0 hover:bg-surface-700 rounded transition-colors duration-200">
-                <i class="pi pi-file-edit mr-3 text-lg"></i>
+                 routerLinkActive="nav-link-active"
+                 class="nav-link">
+                <i class="pi pi-file-edit nav-icon"></i>
                 <span>Logging</span>
               </a>
             </li>
             <li>
               <a routerLink="/about"
-                 routerLinkActive="bg-surface-700 border-l-4 border-primary"
-                 class="flex items-center px-3 py-2 text-surface-200 hover:text-surface-0 hover:bg-surface-700 rounded transition-colors duration-200">
-                <i class="pi pi-info-circle mr-3 text-lg"></i>
+                 routerLinkActive="nav-link-active"
+                 class="nav-link">
+                <i class="pi pi-info-circle nav-icon"></i>
                 <span>About</span>
               </a>
             </li>
