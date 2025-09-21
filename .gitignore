@@ -21,3 +21,4 @@ src/main/frontend/dist/
 src/main/frontend/*.log
 src/main/resources/static/
 src/main/resources/secom/keystore.p12
+testenv.sh

@@ -107,7 +107,7 @@ databaseChangeLog:
       comment: "Create S124DatasetInstanceEntity table"
       changes:
         - createTable:
-            tableName: s124_dataset_instance_entity
+            tableName: s124dataset_instance_entity
             columns:
               - column:
                   name: id
@@ -136,7 +136,7 @@ databaseChangeLog:
                   name: valid_to
                   type: TIMESTAMP
         - addForeignKeyConstraint:
-            baseTableName: s124_dataset_instance_entity
+            baseTableName: s124dataset_instance_entity
             baseColumnNames: id
             referencedTableName: s100_gml_dataset_instance_entity
             referencedColumnNames: id
@@ -144,7 +144,7 @@ databaseChangeLog:
             onDelete: CASCADE
       rollback:
         - dropTable:
-            tableName: s124_dataset_instance_entity
+            tableName: s124dataset_instance_entity
 
   - changeSet:
       id: 002-create-s124-dataset-references-table
@@ -172,14 +172,14 @@ databaseChangeLog:
         - addForeignKeyConstraint:
             baseTableName: s124_dataset_references
             baseColumnNames: dataset_id
-            referencedTableName: s124_dataset_instance_entity
+            referencedTableName: s124dataset_instance_entity
             referencedColumnNames: id
             constraintName: fk_s124_ref_dataset
             onDelete: CASCADE
         - addForeignKeyConstraint:
             baseTableName: s124_dataset_references
             baseColumnNames: referenced_dataset_id
-            referencedTableName: s124_dataset_instance_entity
+            referencedTableName: s124dataset_instance_entity
             referencedColumnNames: id
             constraintName: fk_s124_ref_referenced_dataset
             onDelete: CASCADE
@@ -194,19 +194,19 @@ databaseChangeLog:
       comment: "Create indexes for S124 tables"
       changes:
         - createIndex:
-            tableName: s124_dataset_instance_entity
+            tableName: s124dataset_instance_entity
             indexName: idx_s124_mrn
             columns:
               - column:
                   name: mrn
         - createIndex:
-            tableName: s124_dataset_instance_entity
+            tableName: s124dataset_instance_entity
             indexName: idx_s124_uuid
             columns:
               - column:
                   name: uuid
         - createIndex:
-            tableName: s124_dataset_instance_entity
+            tableName: s124dataset_instance_entity
             indexName: idx_s124_valid_period
             columns:
               - column:
@@ -221,13 +221,13 @@ databaseChangeLog:
                   name: dataset_file_identifier
       rollback:
         - dropIndex:
-            tableName: s124_dataset_instance_entity
+            tableName: s124dataset_instance_entity
             indexName: idx_s124_mrn
         - dropIndex:
-            tableName: s124_dataset_instance_entity
+            tableName: s124dataset_instance_entity
             indexName: idx_s124_uuid
         - dropIndex:
-            tableName: s124_dataset_instance_entity
+            tableName: s124dataset_instance_entity
             indexName: idx_s124_valid_period
         - dropIndex:
             tableName: s100_data_set_identification_entity
