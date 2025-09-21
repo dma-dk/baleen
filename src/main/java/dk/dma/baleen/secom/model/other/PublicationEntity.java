@@ -23,6 +23,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 
 /**
  * A dataset that was published.
@@ -30,7 +31,8 @@ import jakarta.persistence.Id;
 @Entity
 public class PublicationEntity {
 
-    @Column(nullable = false, columnDefinition = "LONGVARBINARY")
+    @Lob
+    @Column(nullable = false)
     private byte[] envelopeUploadObject; // The actual data to be published
 
     @Id

@@ -63,7 +63,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: dataset_abstract
-                  type: CLOB
+                  type: clob
       rollback:
         - dropTable:
             tableName: s100_data_set_identification_entity
@@ -96,7 +96,7 @@ databaseChangeLog:
                   type: VARCHAR(255)
               - column:
                   name: gml
-                  type: CLOB
+                  type: clob
               - column:
                   name: geometry
                   type: GEOMETRY

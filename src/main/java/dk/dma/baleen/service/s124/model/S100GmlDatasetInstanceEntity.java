@@ -23,6 +23,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.MappedSuperclass;
 
 /**
@@ -39,7 +40,7 @@ public abstract class S100GmlDatasetInstanceEntity {
     @Column
     private String dataProductVersion;
 
-    @Column(columnDefinition = "TEXT")
+    @Lob
     private String gml;
 
     @Id

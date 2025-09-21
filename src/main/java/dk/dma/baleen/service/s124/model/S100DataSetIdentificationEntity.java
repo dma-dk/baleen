@@ -27,6 +27,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 import jakarta.persistence.Temporal;
 import jakarta.persistence.TemporalType;
@@ -70,7 +71,7 @@ public class S100DataSetIdentificationEntity implements Serializable {
     @Column(nullable = false, length = 3)
     private String datasetLanguage;
 
-    @Column(columnDefinition = "TEXT")
+    @Lob
     private String datasetAbstract;
 
     // Getters and Setters
