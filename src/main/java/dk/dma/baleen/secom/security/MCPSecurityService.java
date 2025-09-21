@@ -17,15 +17,18 @@ package dk.dma.baleen.secom.security;
 
 import static java.util.Objects.requireNonNull;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.Socket;
 import java.net.http.HttpClient;
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.PrivateKey;
 import java.security.Signature;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
+import java.util.Base64;
 import java.util.Enumeration;
 
 import javax.net.ssl.KeyManagerFactory;
@@ -107,12 +110,39 @@ public class MCPSecurityService {
           throw new IllegalArgumentException("Keystore not found at: " + location);
         }
 
-        KeyStore ks = KeyStore.getInstance("PKCS12");
+        // Read the entire file content first
+        byte[] keystoreData;
         try (InputStream in = resource.getInputStream()) {
-          ks.load(in, config.keyStorePassword().toCharArray());
+            keystoreData = in.readAllBytes();
         }
+
+        // Check if the content is base64-encoded and decode if necessary
+        if (isBase64Encoded(keystoreData)) {
+            LOGGER.info("Detected base64-encoded keystore, decoding...");
+            String base64String = new String(keystoreData, StandardCharsets.UTF_8).trim();
+            keystoreData = Base64.getDecoder().decode(base64String);
+        }
+
+        // Load the keystore from the (possibly decoded) binary data
+        KeyStore ks = KeyStore.getInstance("PKCS12");
+        try (ByteArrayInputStream bis = new ByteArrayInputStream(keystoreData)) {
+            ks.load(bis, config.keyStorePassword().toCharArray());
+        }
+
         LOGGER.info("Loaded keystore from: {}", location);
         return ks;
+    }
+
+    private boolean isBase64Encoded(byte[] data) {
+        // PKCS12 files typically start with 0x30 0x82 (ASN.1 SEQUENCE)
+        if (data.length >= 2 && data[0] == 0x30 && (data[1] & 0xFF) == 0x82) {
+            return false; // Already in binary format
+        }
+
+        // Check if the content appears to be base64
+        // Base64 uses A-Z, a-z, 0-9, +, /, = and whitespace
+        String content = new String(data, StandardCharsets.US_ASCII);
+        return content.matches("^[A-Za-z0-9+/=\\s]+$");
     }
 
     private KeyStore loadTrustStore(MCPSecurityConfig config) throws Exception {
