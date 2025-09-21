@@ -63,11 +63,11 @@ import { MenuItem } from 'primeng/api';
               </a>
             </li>
             <li>
-              <a routerLink="/about"
+              <a routerLink="/database"
                  routerLinkActive="nav-link-active"
                  class="nav-link">
-                <i class="pi pi-info-circle nav-icon"></i>
-                <span>About</span>
+                <i class="pi pi-database nav-icon"></i>
+                <span>Database</span>
               </a>
             </li>
           </ul>

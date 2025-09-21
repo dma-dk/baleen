@@ -1,15 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
-import { environment } from '../../environments/environment';
 import { CardModule } from 'primeng/card';
 import { ButtonModule } from 'primeng/button';
 import { TagModule } from 'primeng/tag';
-
-interface AboutInfo {
-  backendUrl: string;
-  version: string;
-}
 
 interface DatabaseInfo {
   url: string;
@@ -21,40 +15,16 @@ interface DatabaseInfo {
 }
 
 @Component({
-  selector: 'app-about',
+  selector: 'app-database',
   standalone: true,
   imports: [CommonModule, CardModule, ButtonModule, TagModule],
   template: `
     <div class="space-y-8">
       <!-- Header -->
       <div class="space-y-2">
-        <h1 class="text-3xl font-semibold text-color">About</h1>
-        <p class="text-muted-color">System information and configuration</p>
+        <h1 class="text-3xl font-semibold text-color">Database</h1>
+        <p class="text-muted-color">Database configuration and connection status</p>
       </div>
-
-      <!-- Application Info -->
-      <p-card header="Application Information">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div class="space-y-2">
-            <label class="text-sm font-medium text-muted-color">Backend URL:</label>
-            <div class="p-3 bg-surface-100 rounded-md font-mono text-sm break-all">
-              {{ aboutInfo?.backendUrl || window.location.origin }}
-            </div>
-          </div>
-          <div class="space-y-2">
-            <label class="text-sm font-medium text-muted-color">Build Date:</label>
-            <div class="p-3 bg-surface-100 rounded-md text-sm">
-              {{ formatDate(environment.buildTimestamp) }}
-            </div>
-          </div>
-          <div class="space-y-2">
-            <label class="text-sm font-medium text-muted-color">Version:</label>
-            <div class="p-3 bg-surface-100 rounded-md text-sm">
-              {{ aboutInfo?.version || 'Loading...' }}
-            </div>
-          </div>
-        </div>
-      </p-card>
 
       <!-- Database Info -->
       <p-card header="Database Information">
@@ -115,32 +85,16 @@ interface DatabaseInfo {
   `,
   styles: []
 })
-export class AboutComponent implements OnInit {
-  aboutInfo: AboutInfo | null = null;
+export class DatabaseComponent implements OnInit {
   databaseInfo: DatabaseInfo | null = null;
   testing = false;
   testSuccess: boolean | null = null;
   testMessage = '';
-  environment = environment;
-  window = window;
 
   constructor(private http: HttpClient) {}
 
   ngOnInit() {
-    this.loadAboutInfo();
     this.loadDatabaseInfo();
-  }
-
-  loadAboutInfo() {
-    this.http.get<AboutInfo>('/api/about')
-      .subscribe({
-        next: (data) => {
-          this.aboutInfo = data;
-        },
-        error: (error) => {
-          console.error('Failed to load about info:', error);
-        }
-      });
   }
 
   loadDatabaseInfo() {
@@ -159,7 +113,7 @@ export class AboutComponent implements OnInit {
     this.testing = true;
     this.testSuccess = null;
     this.testMessage = '';
-    
+
     this.http.post<{success: boolean, message: string}>('/api/about/database/test', {})
       .subscribe({
         next: (response) => {
@@ -173,11 +127,5 @@ export class AboutComponent implements OnInit {
           this.testMessage = error.error?.message || 'Connection test failed';
         }
       });
-  }
-
-  formatDate(timestamp: string): string {
-    if (!timestamp) return 'Unknown';
-    const date = new Date(timestamp);
-    return date.toLocaleString();
   }
 }
