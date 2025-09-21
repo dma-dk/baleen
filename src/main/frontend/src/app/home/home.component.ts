@@ -9,7 +9,7 @@ import { CardModule } from 'primeng/card';
   imports: [CommonModule, CardModule],
   template: `
     <div class="p-6">
-      <h1 class="text-color text-2xl font-semibold mb-4">Welcome to Baleen</h1>
+      <h1 class="text-3xl font-semibold text-color mb-2">Welcome to Baleen</h1>
       <p class="text-muted-color">S-124 Navigational Warnings Management Platform</p>
 
       <p-card header="System Information" class="mt-6">

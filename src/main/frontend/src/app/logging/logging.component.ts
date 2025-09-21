@@ -297,8 +297,8 @@ export class LoggingComponent implements OnInit, OnDestroy, AfterViewChecked {
 
   getLogRowClass(level: string): string {
     switch (level) {
-      case 'ERROR': return 'bg-red-50';
-      case 'WARN': return 'bg-yellow-50';
+      case 'ERROR': return 'bg-surface-100';
+      case 'WARN': return 'bg-surface-50';
       default: return '';
     }
   }

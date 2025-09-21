@@ -51,3 +51,45 @@ body {
 .nav-icon {
   @apply mr-3 text-lg;
 }
+
+/* Visual Feedback Enhancements */
+/* Table row hover effects */
+.p-datatable .p-datatable-tbody > tr:hover {
+  background-color: rgb(var(--p-surface-50)) !important;
+  transition: background-color 0.15s ease;
+}
+
+/* Card hover effects */
+.p-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+/* Button focus enhancement */
+.p-button:focus {
+  outline: 2px solid rgb(var(--p-primary-500));
+  outline-offset: 2px;
+}
+
+/* Input focus enhancement */
+.p-inputtext:focus,
+.p-dropdown:focus-within {
+  outline: 2px solid rgb(var(--p-primary-500));
+  outline-offset: 1px;
+}
+
+/* Custom loading spinner */
+.loading-spinner {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgb(var(--p-surface-300));
+  border-radius: 50%;
+  border-top-color: rgb(var(--p-primary-500));
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
