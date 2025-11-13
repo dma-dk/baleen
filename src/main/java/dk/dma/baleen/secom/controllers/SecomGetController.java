@@ -112,14 +112,9 @@ public class SecomGetController extends AbstractSecomController implements GetSe
 
     private Page<? extends DataSet> get0(UUID dataReference, SECOM_DataProductType dataProductType, String productVersion, String geometry, String unlocode,
             LocalDateTime validFrom, LocalDateTime validTo, Integer page, Integer pageSize) {
-
-        // It is actually legal to not specify one. But then we would need to aggregate over all products
         if (dataProductType == null) {
-            throw new SecomNotImplementedException("A data product type is required to be specified");
+            dataProductType = SECOM_DataProductType.S124;
         }
-        // Going forward we should require a version.
-        // We should mandata version
-
         Geometry jtsGeometry = parseGeometry(geometry, unlocode);
 
         return secomGetService.get(mrn(), dataReference, dataProductType, productVersion, geometry, unlocode, jtsGeometry, validFrom, validTo, page, pageSize);
