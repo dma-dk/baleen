@@ -12,6 +12,8 @@ generated
 
 _diverse
 copyfrom
+deploy-local/
+CLAUDE.md
 
 # Angular Frontend
 src/main/frontend/node_modules/
