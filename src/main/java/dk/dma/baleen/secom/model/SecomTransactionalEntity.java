@@ -18,7 +18,7 @@ package dk.dma.baleen.secom.model;
 import java.time.Instant;
 import java.util.UUID;
 
-import org.grad.secom.core.models.enums.NackTypeEnum;
+import org.grad.secomv2.core.models.enums.NackTypeEnum;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

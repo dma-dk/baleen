@@ -21,7 +21,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
-import org.grad.secom.core.models.CapabilityObject;
+import org.grad.secomv2.core.models.CapabilityObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;
@@ -50,8 +50,8 @@ public class SecomCoreService {
     /**
      * {@return the capabilities of this node}
      *
-     * @see org.grad.secom.core.interfaces.CapabilitySecomInterface
-     * @see org.grad.secom.springboot3.components.SecomClient#capability()
+     * @see org.grad.secomv2.core.interfaces.CapabilityServiceInterface
+     * @see org.grad.secomv2.springboot3.components.SecomClient#capability()
      **/
     public List<CapabilityObject> capabilities() {
         return capabilities;
@@ -64,7 +64,7 @@ public class SecomCoreService {
      *            the node to return last interaction time for
      * @return the last interaction with the node, or empty if no interaction
      *
-     * @see org.grad.secom.core.interfaces.PingSecomInterface
+     * @see org.grad.secomv2.core.interfaces.PingServiceInterface
      */
     @Nullable
     public Optional<Instant> lastInteractionTime(AuthenticatedMcpNode node) {

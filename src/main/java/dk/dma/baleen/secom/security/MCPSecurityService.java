@@ -38,7 +38,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509ExtendedTrustManager;
 
-import org.grad.secom.springboot3.components.SecomConfigProperties;
+import org.grad.secomv2.springboot3.components.SecomConfigProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -1,6 +1,6 @@
 # Simple Docker image for pre-built Spring Boot JAR
 
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 
 WORKDIR /app
 
@@ -27,5 +27,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 # Set JVM options for containerized environment
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=70.0"
 
-# Run the application
-ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
+# If KEYSTORE_B64 is provided (deploy injects from Key Vault), decode it to a
+# file and point KEYSTORE_LOCATION at it. Otherwise the app falls back to the
+# bundled self-signed localdev keystore on the classpath.
+ENTRYPOINT ["sh", "-c", "if [ -n \"$KEYSTORE_B64\" ]; then echo \"$KEYSTORE_B64\" | base64 -d > /app/keystore.p12 && export KEYSTORE_LOCATION=file:/app/keystore.p12; fi; exec java $JAVA_OPTS -jar app.jar"]

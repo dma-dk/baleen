@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.grad.secom.core.models.enums.SECOM_DataProductType;
+import org.grad.secomv2.core.models.enums.SECOM_DataProductType;
 import org.locationtech.jts.geom.Geometry;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

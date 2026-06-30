@@ -21,9 +21,9 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.grad.secom.core.exceptions.SecomNotFoundException;
-import org.grad.secom.core.models.enums.AckTypeEnum;
-import org.grad.secom.core.models.enums.NackTypeEnum;
+import org.grad.secomv2.core.exceptions.SecomNotFoundException;
+import org.grad.secomv2.core.models.enums.AckTypeEnum;
+import org.grad.secomv2.core.models.enums.NackTypeEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Service;

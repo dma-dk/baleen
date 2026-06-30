@@ -23,12 +23,12 @@ import java.security.UnrecoverableKeyException;
 import java.security.cert.CertificateException;
 import java.util.Optional;
 
-import org.grad.secom.core.models.ResponseSearchObject;
-import org.grad.secom.core.models.SearchFilterObject;
-import org.grad.secom.core.models.SubscriptionNotificationObject;
-import org.grad.secom.core.models.UploadObject;
-import org.grad.secom.springboot3.components.SecomClient;
-import org.grad.secom.springboot3.components.SecomConfigProperties;
+import org.grad.secomv2.core.models.SearchFilterObject;
+import org.grad.secomv2.core.models.SearchResult;
+import org.grad.secomv2.core.models.SubscriptionNotificationObject;
+import org.grad.secomv2.core.models.UploadObject;
+import org.grad.secomv2.springboot3.components.SecomClient;
+import org.grad.secomv2.springboot3.components.SecomConfigProperties;
 
 /**
  *
@@ -63,13 +63,7 @@ public final class BaleenSecomClient {
         client.upload(o);
     }
 
-    /**
-     * @param filter
-     * @param i
-     * @param maxValue
-     * @return
-     */
-    public Optional<ResponseSearchObject> searchService(SearchFilterObject filter, int page, int maxValue) {
-        return client.searchService(filter, page, maxValue);
+    public Optional<SearchResult> searchService(SearchFilterObject filter) {
+        return client.searchService(filter);
     }
 }

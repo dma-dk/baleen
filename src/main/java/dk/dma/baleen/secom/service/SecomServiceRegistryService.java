@@ -23,14 +23,14 @@ import java.util.Comparator;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
-import org.grad.secom.core.exceptions.SecomGenericException;
-import org.grad.secom.core.exceptions.SecomNotFoundException;
-import org.grad.secom.core.exceptions.SecomValidationException;
-import org.grad.secom.core.models.ResponseSearchObject;
-import org.grad.secom.core.models.SearchFilterObject;
-import org.grad.secom.core.models.SearchObjectResult;
-import org.grad.secom.core.models.SearchParameters;
-import org.grad.secom.springboot3.components.SecomConfigProperties;
+import org.grad.secomv2.core.exceptions.SecomGenericException;
+import org.grad.secomv2.core.exceptions.SecomNotFoundException;
+import org.grad.secomv2.core.exceptions.SecomValidationException;
+import org.grad.secomv2.core.models.EnvelopeSearchFilterObject;
+import org.grad.secomv2.core.models.SearchFilterObject;
+import org.grad.secomv2.core.models.SearchParameters;
+import org.grad.secomv2.core.models.ServiceInstanceObject;
+import org.grad.secomv2.springboot3.components.SecomConfigProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanCreationException;
@@ -88,13 +88,16 @@ public final class SecomServiceRegistryService {
 
         // Create the search object
         SearchFilterObject filter = new SearchFilterObject();
+        EnvelopeSearchFilterObject envelope = new EnvelopeSearchFilterObject();
         SearchParameters params = new SearchParameters();
         params.setInstanceId(mrn);
-        filter.setQuery(params);
+        envelope.setQuery(params);
+        filter.setEnvelope(envelope);
 
         // Get latest hosts
-        SearchObjectResult result = serviceRegistryClient.searchService(filter, 0, Integer.MAX_VALUE).map(ResponseSearchObject::getSearchServiceResult)
-                .orElse(List.of()).stream().max(Comparator.comparing(SearchObjectResult::getVersion))
+        ServiceInstanceObject result = serviceRegistryClient.searchService(filter)
+                .map(sr -> sr.getEnvelope().getServiceInstance())
+                .orElse(List.of()).stream().max(Comparator.comparing(ServiceInstanceObject::getVersion))
                 .orElseThrow(() -> new SecomNotFoundException(String.format("The MRN %s was not registered as a service with %s", mrn, serviceRegistryClient)));
 
         logger.info("Resolved MRN as: {}", result.getEndpointUri());

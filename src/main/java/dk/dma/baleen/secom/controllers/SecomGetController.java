@@ -17,24 +17,26 @@ package dk.dma.baleen.secom.controllers;
 
 import static java.util.Objects.requireNonNull;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.grad.secom.core.exceptions.SecomNotImplementedException;
-import org.grad.secom.core.exceptions.SecomValidationException;
-import org.grad.secom.core.interfaces.GetSecomInterface;
-import org.grad.secom.core.interfaces.GetSummarySecomInterface;
-import org.grad.secom.core.models.DataResponseObject;
-import org.grad.secom.core.models.GetResponseObject;
-import org.grad.secom.core.models.GetSummaryResponseObject;
-import org.grad.secom.core.models.PaginationObject;
-import org.grad.secom.core.models.SECOM_ExchangeMetadataObject;
-import org.grad.secom.core.models.SummaryObject;
-import org.grad.secom.core.models.enums.ContainerTypeEnum;
-import org.grad.secom.core.models.enums.SECOM_DataProductType;
+import org.grad.secomv2.core.exceptions.SecomNotImplementedException;
+import org.grad.secomv2.core.exceptions.SecomValidationException;
+import org.grad.secomv2.core.interfaces.GetServiceInterface;
+import org.grad.secomv2.core.interfaces.GetSummaryServiceInterface;
+import org.grad.secomv2.core.models.DataResponseObject;
+import org.grad.secomv2.core.models.GetResponseObject;
+import org.grad.secomv2.core.models.GetSummaryResponseObject;
+import org.grad.secomv2.core.models.PaginationObject;
+import org.grad.secomv2.core.models.ExchangeMetadata;
+import org.grad.secomv2.core.models.SummaryObject;
+import org.grad.secomv2.core.models.enums.ContainerTypeEnum;
+import org.grad.secomv2.core.models.enums.SECOM_DataProductType;
 import org.locationtech.jts.geom.Geometry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -45,19 +47,17 @@ import dk.dma.baleen.secom.service.SecomGetService;
 import dk.dma.baleen.service.spi.DataSet;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
 
 /**
- * We implement both {@link GetSecomInterface}, {@link GetSummarySecomInterface} and {@link GetByLinkSecomInterface}
+ * We implement both {@link GetServiceInterface}, {@link GetSummaryServiceInterface} and {@link GetByLinkSecomInterface}
  * here.
  */
 @Component
 @Path("/")
 @Validated
-public class SecomGetController extends AbstractSecomController implements GetSecomInterface , GetSummarySecomInterface {
+public class SecomGetController extends AbstractSecomController implements GetServiceInterface , GetSummaryServiceInterface {
 
     /** A SECOM service that handle all get requests. */
     private SecomGetService secomGetService;
@@ -68,13 +68,16 @@ public class SecomGetController extends AbstractSecomController implements GetSe
     }
 
     /** {@inheritDoc} */
+    // NOTE: see getSummary below - the overriding method must not redefine the interface's
+    // parameter constraint configuration (HV000151). Let constraints be inherited from
+    // GetServiceInterface#get instead of redeclaring @Pattern/@Min here.
     @Override
     public GetResponseObject get(@QueryParam("dataReference") UUID dataReference, @QueryParam("containerType") ContainerTypeEnum containerType,
             @QueryParam("dataProductType") SECOM_DataProductType dataProductType, @QueryParam("productVersion") String productVersion,
-            @QueryParam("geometry") String geometry, @QueryParam("unlocode") @Pattern(regexp = "[A-Z]{5}") String unlocode,
-            @QueryParam("validFrom") @Parameter(example = "20200101T123000", schema = @Schema(implementation = String.class, pattern = "(\\d{8})T(\\d{6})")) LocalDateTime validFrom,
-            @QueryParam("validTo") @Parameter(example = "20200101T123000", schema = @Schema(implementation = String.class, pattern = "(\\d{8})T(\\d{6})")) LocalDateTime validTo,
-            @QueryParam("page") @Min(0) Integer page, @QueryParam("pageSize") @Min(0) Integer pageSize) {
+            @QueryParam("geometry") String geometry, @QueryParam("unlocode") String unlocode,
+            @QueryParam("validFrom") @Parameter(example = "20200101T123000", schema = @Schema(implementation = String.class, pattern = "(\\d{8})T(\\d{6})")) Instant validFrom,
+            @QueryParam("validTo") @Parameter(example = "20200101T123000", schema = @Schema(implementation = String.class, pattern = "(\\d{8})T(\\d{6})")) Instant validTo,
+            @QueryParam("page") Integer page, @QueryParam("pageSize") Integer pageSize) {
         if (containerType == ContainerTypeEnum.NONE) {
             throw new SecomValidationException("NONE cannot be specified for containerType");
         }
@@ -83,7 +86,7 @@ public class SecomGetController extends AbstractSecomController implements GetSe
         }
 
         // Find all data from th
-        Page<? extends DataSet> data = get0(dataReference, dataProductType, productVersion, geometry, unlocode, validFrom, validTo, page, pageSize);
+        Page<? extends DataSet> data = get0(dataReference, dataProductType, productVersion, geometry, unlocode, toLocal(validFrom), toLocal(validTo), page, pageSize);
 
         List<DataResponseObject> objects = new ArrayList<>();
 
@@ -92,7 +95,7 @@ public class SecomGetController extends AbstractSecomController implements GetSe
                 DataResponseObject dro = new DataResponseObject();
                 dro.setData(ds.toByteArray());
 
-                SECOM_ExchangeMetadataObject emo = new SECOM_ExchangeMetadataObject();
+                ExchangeMetadata emo = new ExchangeMetadata();
                 emo.setCompressionFlag(false);
                 emo.setDataProtection(false);
                 dro.setExchangeMetadata(emo);
@@ -106,8 +109,11 @@ public class SecomGetController extends AbstractSecomController implements GetSe
         GetResponseObject response = new GetResponseObject();
         response.setDataResponseObject(objects);
         response.setPagination(new PaginationObject(objects.size(), Optional.ofNullable(pageSize).orElse(Integer.MAX_VALUE)));
-        response.setResponseText(objects.size() + " datasets returned");
         return response;
+    }
+
+    private static LocalDateTime toLocal(Instant instant) {
+        return instant == null ? null : LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
     }
 
     private Page<? extends DataSet> get0(UUID dataReference, SECOM_DataProductType dataProductType, String productVersion, String geometry, String unlocode,
@@ -122,17 +128,20 @@ public class SecomGetController extends AbstractSecomController implements GetSe
 
     /** {@inheritDoc} */
     @Override
+    // NOTE: Jakarta Bean Validation forbids an implementing method from adding parameter
+    // constraints that the interface method does not declare (HV000151). GetSummaryServiceInterface
+    // declares no parameter constraints, so getSummary must not add @Pattern/@Min here.
     public GetSummaryResponseObject getSummary(@QueryParam("containerType") ContainerTypeEnum containerType,
             @QueryParam("dataProductType") SECOM_DataProductType dataProductType, @QueryParam("productVersion") String productVersion,
-            @QueryParam("geometry") String geometry, @QueryParam("unlocode") @Pattern(regexp = "[A-Z]{5}") String unlocode,
-            @QueryParam("validFrom") @Parameter(example = "20200101T123000", schema = @Schema(implementation = String.class, pattern = "(\\d{8})T(\\d{6})")) LocalDateTime validFrom,
-            @QueryParam("validTo") @Parameter(example = "20200101T123000", schema = @Schema(implementation = String.class, pattern = "(\\d{8})T(\\d{6})")) LocalDateTime validTo,
-            @QueryParam("page") @Min(0) Integer page, @QueryParam("pageSize") @Min(0) Integer pageSize) {
+            @QueryParam("geometry") String geometry, @QueryParam("unlocode") String unlocode,
+            @QueryParam("validFrom") @Parameter(example = "20200101T123000", schema = @Schema(implementation = String.class, pattern = "(\\d{8})T(\\d{6})")) Instant validFrom,
+            @QueryParam("validTo") @Parameter(example = "20200101T123000", schema = @Schema(implementation = String.class, pattern = "(\\d{8})T(\\d{6})")) Instant validTo,
+            @QueryParam("page") Integer page, @QueryParam("pageSize") Integer pageSize) {
 
         // containerType has mandatory processing, but have no idea what do with it
 
         // Find all relevant data
-        Page<? extends DataSet> data = get0(null, dataProductType, productVersion, geometry, unlocode, validFrom, validTo, page, pageSize);
+        Page<? extends DataSet> data = get0(null, dataProductType, productVersion, geometry, unlocode, toLocal(validFrom), toLocal(validTo), page, pageSize);
 
         // Create the summary object
         List<SummaryObject> summaryObjects = new ArrayList<>();
@@ -148,7 +157,7 @@ public class SecomGetController extends AbstractSecomController implements GetSe
 
         // Create and return the response
         GetSummaryResponseObject response = new GetSummaryResponseObject();
-        response.setSummaryObject(summaryObjects);
+        response.setInformationSummaryObject(summaryObjects);
         response.setPagination(new PaginationObject(summaryObjects.size(), pageSize == null ? Integer.MAX_VALUE : pageSize));
         return response;
     }

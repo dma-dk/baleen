@@ -23,7 +23,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
-import org.grad.secom.core.models.CapabilityObject;
+import org.grad.secomv2.core.models.CapabilityObject;
 import org.springframework.stereotype.Service;
 
 import dk.dma.baleen.service.spi.S100DataProductService;

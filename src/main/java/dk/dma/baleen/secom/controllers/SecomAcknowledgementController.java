@@ -19,14 +19,14 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.UUID;
 
-import org.grad.secom.core.exceptions.SecomInvalidCertificateException;
-import org.grad.secom.core.exceptions.SecomValidationException;
-import org.grad.secom.core.interfaces.AcknowledgementSecomInterface;
-import org.grad.secom.core.models.AcknowledgementObject;
-import org.grad.secom.core.models.AcknowledgementResponseObject;
-import org.grad.secom.core.models.EnvelopeAckObject;
-import org.grad.secom.core.models.enums.AckTypeEnum;
-import org.grad.secom.core.models.enums.NackTypeEnum;
+import org.grad.secomv2.core.exceptions.SecomInvalidCertificateException;
+import org.grad.secomv2.core.exceptions.SecomValidationException;
+import org.grad.secomv2.core.interfaces.AcknowledgementServiceInterface;
+import org.grad.secomv2.core.models.AcknowledgementObject;
+import org.grad.secomv2.core.models.AcknowledgementResponseObject;
+import org.grad.secomv2.core.models.EnvelopeAckObject;
+import org.grad.secomv2.core.models.enums.AckTypeEnum;
+import org.grad.secomv2.core.models.enums.NackTypeEnum;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
@@ -35,11 +35,11 @@ import dk.dma.baleen.secom.service.SecomTransactionalService;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Path;
 
-/** Implements {@link AcknowledgementSecomInterface} */
+/** Implements {@link AcknowledgementServiceInterface} */
 @Component
 @Path("/")
 @Validated
-public class SecomAcknowledgementController extends AbstractSecomController implements AcknowledgementSecomInterface {
+public class SecomAcknowledgementController extends AbstractSecomController implements AcknowledgementServiceInterface {
 
     private SecomTransactionalService transactionalService;
 

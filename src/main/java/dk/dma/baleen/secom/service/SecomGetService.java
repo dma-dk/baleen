@@ -20,8 +20,8 @@ import static java.util.Objects.requireNonNull;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-import org.grad.secom.core.exceptions.SecomNotImplementedException;
-import org.grad.secom.core.models.enums.SECOM_DataProductType;
+import org.grad.secomv2.core.exceptions.SecomNotImplementedException;
+import org.grad.secomv2.core.models.enums.SECOM_DataProductType;
 import org.locationtech.jts.geom.Geometry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;

@@ -23,10 +23,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.grad.secom.core.models.CapabilityObject;
-import org.grad.secom.core.models.ImplementedInterfaces;
-import org.grad.secom.core.models.enums.ContainerTypeEnum;
-import org.grad.secom.core.models.enums.SECOM_DataProductType;
+import org.grad.secomv2.core.models.CapabilityObject;
+import org.grad.secomv2.core.models.ImplementedInterfaces;
+import org.grad.secomv2.core.models.enums.ContainerTypeEnum;
+import org.grad.secomv2.core.models.enums.SECOM_DataProductType;
 import org.locationtech.jts.geom.Geometry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;

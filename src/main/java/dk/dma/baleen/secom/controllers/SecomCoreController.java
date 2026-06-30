@@ -18,14 +18,12 @@ package dk.dma.baleen.secom.controllers;
 import static java.util.Objects.requireNonNull;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Optional;
 
-import org.grad.secom.core.interfaces.CapabilitySecomInterface;
-import org.grad.secom.core.interfaces.PingSecomInterface;
-import org.grad.secom.core.models.CapabilityResponseObject;
-import org.grad.secom.core.models.PingResponseObject;
+import org.grad.secomv2.core.interfaces.CapabilityServiceInterface;
+import org.grad.secomv2.core.interfaces.PingServiceInterface;
+import org.grad.secomv2.core.models.CapabilityResponseObject;
+import org.grad.secomv2.core.models.PingResponseObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
@@ -33,11 +31,11 @@ import org.springframework.validation.annotation.Validated;
 import dk.dma.baleen.secom.service.SecomCoreService;
 import jakarta.ws.rs.Path;
 
-/** Implements {@link CapabilitySecomInterface}. */
+/** Implements {@link CapabilityServiceInterface}. */
 @Controller
 @Path("/")
 @Validated
-public class SecomCoreController extends AbstractSecomController implements CapabilitySecomInterface , PingSecomInterface {
+public class SecomCoreController extends AbstractSecomController implements CapabilityServiceInterface , PingServiceInterface {
 
     private final SecomCoreService coreService;
 
@@ -60,7 +58,7 @@ public class SecomCoreController extends AbstractSecomController implements Capa
         Optional<Instant> t = coreService.lastInteractionTime(mrn());
 
         PingResponseObject o = new PingResponseObject();
-        o.setLastPrivateInteractionTime(t.map(instant -> LocalDateTime.ofInstant(instant, ZoneOffset.UTC)).orElse(null));
+        o.setTimestamp(t.orElse(null));
         return o;
     }
 }

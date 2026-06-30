@@ -19,7 +19,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
-import org.grad.secom.core.models.CapabilityObject;
+import org.grad.secomv2.core.models.CapabilityObject;
 import org.locationtech.jts.geom.Geometry;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

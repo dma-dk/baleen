@@ -15,9 +15,9 @@
  */
 package dk.dma.baleen.secom.controllers;
 
-import org.grad.secom.core.exceptions.SecomInvalidCertificateException;
-import org.grad.secom.core.exceptions.SecomValidationException;
-import org.grad.secom.core.models.AbstractEnvelope;
+import org.grad.secomv2.core.exceptions.SecomInvalidCertificateException;
+import org.grad.secomv2.core.exceptions.SecomValidationException;
+import org.grad.secomv2.core.models.AbstractEnvelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.io.ParseException;
 import org.springframework.beans.factory.annotation.Autowired;

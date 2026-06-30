@@ -18,8 +18,8 @@ package dk.dma.baleen.secom.model;
 import java.time.Instant;
 import java.util.UUID;
 
-import org.grad.secom.core.models.enums.ContainerTypeEnum;
-import org.grad.secom.core.models.enums.SECOM_DataProductType;
+import org.grad.secomv2.core.models.enums.ContainerTypeEnum;
+import org.grad.secomv2.core.models.enums.SECOM_DataProductType;
 import org.locationtech.jts.geom.Geometry;
 
 import jakarta.persistence.Column;

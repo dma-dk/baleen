@@ -15,8 +15,8 @@
  */
 package dk.dma.baleen.secom.serviceold;
 
-import org.grad.secom.core.models.SubscriptionNotificationObject;
-import org.grad.secom.core.models.UploadObject;
+import org.grad.secomv2.core.models.SubscriptionNotificationObject;
+import org.grad.secomv2.core.models.UploadObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;

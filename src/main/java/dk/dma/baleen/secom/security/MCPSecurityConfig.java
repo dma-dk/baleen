@@ -16,7 +16,7 @@
 
 package dk.dma.baleen.secom.security;
 
-import org.grad.secom.springboot3.components.SecomConfigProperties;
+import org.grad.secomv2.springboot3.components.SecomConfigProperties;
 
 /**
  * Wrapper around SecomConfigProperties to map configuration to MCPSecurityConfig interface.

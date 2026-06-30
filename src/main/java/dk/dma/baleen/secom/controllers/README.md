@@ -2,20 +2,20 @@ The following functionality is supported
 
 
 SecomAcknowledgementController
-  AcknowledgementSecomInterface.class  
+  AcknowledgementServiceInterface.class  
 
 SecomCoreController
-  CapabilitySecomInterface.class
-  PingSecomInterface.class
+  CapabilityServiceInterface.class
+  PingServiceInterface.class
   
 SecomGetController
   GetByLinkSecomInterface.class
-  GetSecomInterface.class
-  GetSummarySecomInterface.class
+  GetServiceInterface.class
+  GetSummaryServiceInterface.class
 
 SecomSubscriptionController
-  RemoveSubscriptionSecomInterface.class
-  SubscriptionSecomInterface.class
+  RemoveSubscriptionServiceInterface.class
+  SubscriptionServiceInterface.class
   
 
 ===== Consumer [Not Supported]

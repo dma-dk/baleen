@@ -21,10 +21,10 @@ import java.security.GeneralSecurityException;
 import java.security.Signature;
 import java.security.cert.X509Certificate;
 
-import org.grad.secom.core.base.DigitalSignatureCertificate;
-import org.grad.secom.core.base.SecomSignatureProvider;
-import org.grad.secom.core.models.enums.DigitalSignatureAlgorithmEnum;
-import org.grad.secom.core.utils.SecomPemUtils;
+import org.grad.secomv2.core.base.DigitalSignatureCertificate;
+import org.grad.secomv2.core.base.SecomSignatureProvider;
+import org.grad.secomv2.core.models.enums.DigitalSignatureAlgorithmEnum;
+import org.grad.secomv2.core.utils.SecomPemUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,11 +76,13 @@ public class BaleenSignatureProvider implements SecomSignatureProvider {
 
     /** {@inheritDoc} */
     @Override
-    public boolean validateSignature(String signatureCertificate, DigitalSignatureAlgorithmEnum algorithm, byte[] signature, byte[] content) {
-        // Get the X.509 certificate from the request
+    public boolean validateSignature(String[] signatureCertificate, DigitalSignatureAlgorithmEnum algorithm, byte[] signature, byte[] content) {
+        if (signatureCertificate == null || signatureCertificate.length == 0) {
+            return false;
+        }
+        // Get the X.509 certificate from the request (first cert in chain is the signer)
         try {
-            // Get the client cert from the request
-            X509Certificate cert = SecomPemUtils.getCertFromPem(signatureCertificate);
+            X509Certificate cert = SecomPemUtils.getCertFromPem(signatureCertificate[0]);
             Signature verification = Signature.getInstance(algorithm.getValue());
             verification.initVerify(cert);
             verification.update(content);

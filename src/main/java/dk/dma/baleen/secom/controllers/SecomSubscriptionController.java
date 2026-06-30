@@ -19,12 +19,11 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.UUID;
 
-import org.grad.secom.core.interfaces.RemoveSubscriptionSecomInterface;
-import org.grad.secom.core.interfaces.SubscriptionSecomInterface;
-import org.grad.secom.core.models.RemoveSubscriptionObject;
-import org.grad.secom.core.models.RemoveSubscriptionResponseObject;
-import org.grad.secom.core.models.SubscriptionRequestObject;
-import org.grad.secom.core.models.SubscriptionResponseObject;
+import org.grad.secomv2.core.interfaces.RemoveSubscriptionServiceInterface;
+import org.grad.secomv2.core.interfaces.SubscriptionServiceInterface;
+import org.grad.secomv2.core.models.RemoveSubscriptionResponseObject;
+import org.grad.secomv2.core.models.SubscriptionRequestObject;
+import org.grad.secomv2.core.models.SubscriptionResponseObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
@@ -33,11 +32,11 @@ import dk.dma.baleen.secom.serviceold.SecomSubscriberService;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Path;
 
-/** Implements {@link SubscriptionSecomInterface} */
+/** Implements {@link SubscriptionServiceInterface} */
 @Component
 @Path("/")
 @Validated
-public class SecomSubscriptionController extends AbstractSecomController implements RemoveSubscriptionSecomInterface , SubscriptionSecomInterface {
+public class SecomSubscriptionController extends AbstractSecomController implements RemoveSubscriptionServiceInterface , SubscriptionServiceInterface {
 
     final SecomSubscriberService secom;
 
@@ -48,15 +47,13 @@ public class SecomSubscriptionController extends AbstractSecomController impleme
 
     /** {@inheritDoc} */
     @Override
-    public RemoveSubscriptionResponseObject removeSubscription(@Valid RemoveSubscriptionObject removeSubscriptionObject) {
-        UUID uuid = requireAttribute("subscriptionIdentifier", removeSubscriptionObject.getSubscriptionIdentifier());
+    public RemoveSubscriptionResponseObject removeSubscription(UUID subscriptionIdentifier) {
+        UUID uuid = requireAttribute("subscriptionIdentifier", subscriptionIdentifier);
 
         // Must throw if missing
         secom.unsubscribe(mrn(), uuid);
 
-        RemoveSubscriptionResponseObject response = new RemoveSubscriptionResponseObject();
-        response.setMessage(String.format("Subscription " + uuid + " removed"));
-        return response;
+        return new RemoveSubscriptionResponseObject();
     }
 
     /** {@inheritDoc} */
@@ -72,7 +69,6 @@ public class SecomSubscriptionController extends AbstractSecomController impleme
         }
         SubscriptionResponseObject response = new SubscriptionResponseObject();
         response.setSubscriptionIdentifier(subscriptionIdentifier);
-        response.setMessage("Subscription completed successfully");
         return response;
     }
 }

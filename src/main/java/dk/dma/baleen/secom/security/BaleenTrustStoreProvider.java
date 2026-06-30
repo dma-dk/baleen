@@ -19,7 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.security.KeyStore;
 
-import org.grad.secom.core.base.SecomTrustStoreProvider;
+import org.grad.secomv2.core.base.SecomTrustStoreProvider;
 
 /** The SECOM Trust Store Provider Implementation. */
 public class BaleenTrustStoreProvider implements SecomTrustStoreProvider {

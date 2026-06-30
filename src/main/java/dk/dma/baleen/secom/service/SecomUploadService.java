@@ -18,8 +18,8 @@ package dk.dma.baleen.secom.service;
 import java.time.Duration;
 import java.util.UUID;
 
-import org.grad.secom.core.models.enums.AckRequestEnum;
-import org.grad.secom.core.models.enums.SECOM_DataProductType;
+import org.grad.secomv2.core.models.enums.AckRequestEnum;
+import org.grad.secomv2.core.models.enums.SECOM_DataProductType;
 import org.springframework.stereotype.Service;
 
 import dk.dma.baleen.secom.model.SecomSubscriberEntity;

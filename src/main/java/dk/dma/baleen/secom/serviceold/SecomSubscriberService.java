@@ -22,15 +22,16 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.grad.secom.core.exceptions.SecomNotFoundException;
-import org.grad.secom.core.models.EnvelopeUploadObject;
-import org.grad.secom.core.models.SubscriptionNotificationObject;
-import org.grad.secom.core.models.SubscriptionRequestObject;
-import org.grad.secom.core.models.UploadObject;
-import org.grad.secom.core.models.enums.AckRequestEnum;
-import org.grad.secom.core.models.enums.ContainerTypeEnum;
-import org.grad.secom.core.models.enums.SECOM_DataProductType;
-import org.grad.secom.core.models.enums.SubscriptionEventEnum;
+import org.grad.secomv2.core.exceptions.SecomNotFoundException;
+import org.grad.secomv2.core.models.EnvelopeSubscriptionNotificationObject;
+import org.grad.secomv2.core.models.EnvelopeUploadObject;
+import org.grad.secomv2.core.models.SubscriptionNotificationObject;
+import org.grad.secomv2.core.models.SubscriptionRequestObject;
+import org.grad.secomv2.core.models.UploadObject;
+import org.grad.secomv2.core.models.enums.AckRequestEnum;
+import org.grad.secomv2.core.models.enums.ContainerTypeEnum;
+import org.grad.secomv2.core.models.enums.SECOM_DataProductType;
+import org.grad.secomv2.core.models.enums.SubscriptionEventEnum;
 import org.locationtech.jts.geom.Geometry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,7 +81,7 @@ public class SecomSubscriberService {
             // Build the data envelope
             EnvelopeUploadObject envelope = new EnvelopeUploadObject();
             envelope.setDataProductType(dataProductType);
-            envelope.setFromSubscription(true);
+            envelope.setSubscriptionIdentifier(e.getId());
             envelope.setAckRequest(AckRequestEnum.DELIVERED_ACK_REQUESTED);
             envelope.setTransactionIdentifier(upl.getTransactionIdentifier());
             envelope.setContainerType(ContainerTypeEnum.S100_DataSet);
@@ -114,7 +115,7 @@ public class SecomSubscriberService {
         Optional<SecomSubscriberEntity> existing = subscriptionRepository.findByNode_Mrn(node.mrn());
         if (existing.isPresent()) {
             logger.info("Existing subscription found for {}", node.mrn());
-            return request.getDataReference();
+            return request.getEnvelope().getDataReference();
         }
 
         SecomSubscriberEntity subscription = new SecomSubscriberEntity();
@@ -129,8 +130,10 @@ public class SecomSubscriberService {
 
         // Create A subscription notification response object and send it to outbox
         SubscriptionNotificationObject notification = new SubscriptionNotificationObject();
-        notification.setSubscriptionIdentifier(uuid);
-        notification.setEventEnum(SubscriptionEventEnum.SUBSCRIPTION_CREATED);
+        EnvelopeSubscriptionNotificationObject notificationEnvelope = new EnvelopeSubscriptionNotificationObject();
+        notificationEnvelope.setSubscriptionIdentifier(uuid);
+        notificationEnvelope.setEventEnum(SubscriptionEventEnum.SUBSCRIPTION_CREATED);
+        notification.setEnvelope(notificationEnvelope);
         outbox.sendTo(node, SecomOperationType.SUBSCRIPTION_NOTIFICATION, notification);
         return uuid;
     }

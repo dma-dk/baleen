@@ -17,8 +17,8 @@ package dk.dma.baleen.secom.security;
 
 import static java.util.Objects.requireNonNull;
 
-import org.grad.secom.core.base.DigitalSignatureCertificate;
-import org.grad.secom.core.base.SecomCertificateProvider;
+import org.grad.secomv2.core.base.DigitalSignatureCertificate;
+import org.grad.secomv2.core.base.SecomCertificateProvider;
 
 /** The SECOM Certificate Provider Implementation. */
 public class BaleenCertificateProvider implements SecomCertificateProvider {
@@ -38,8 +38,8 @@ public class BaleenCertificateProvider implements SecomCertificateProvider {
         // Initialise SECOM the digital signature certificate
         final DigitalSignatureCertificate digitalSignatureCertificate = new DigitalSignatureCertificate();
 
-        digitalSignatureCertificate.setCertificateAlias("1");
-        digitalSignatureCertificate.setCertificate(pki.mcpServiceCertificate());
+        digitalSignatureCertificate.setCertificateAlias(new String[] { "1" });
+        digitalSignatureCertificate.setCertificate(new java.security.cert.X509Certificate[] { pki.mcpServiceCertificate() });
         digitalSignatureCertificate.setPublicKey(pki.mcpServiceCertificate().getPublicKey());
         digitalSignatureCertificate.setRootCertificate(pki.mcpRootCertificate());
 

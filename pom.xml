@@ -20,8 +20,13 @@
     
     <!-- ==================================================================== -->
     <properties>
-        <version.secomlib>0.0.50</version.secomlib>
-        <java.version>21</java.version>
+        <!-- Pinned to the exact May-2026 snapshot the deployed app was built against.
+             The bare 0.0.7-SNAPSHOT is mutable and has since drifted (a June build
+             removed GetSummaryResponseObject.setInformationSummaryObject and changed
+             SecomSignatureProvider.validateSignature), which breaks compilation. Pin so
+             rebuilds are reproducible; revisit when intentionally adopting a newer secom. -->
+        <version.secomlib>0.0.7-20260515.145929-8</version.secomlib>
+        <java.version>25</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     
@@ -71,12 +76,12 @@
         <!-- SECOM Library -->
         <dependency>
             <groupId>org.grad.secom</groupId>
-            <artifactId>secom-core-jakarta</artifactId>
+            <artifactId>secom-v2-core-jakarta</artifactId>
             <version>${version.secomlib}</version>
         </dependency>
         <dependency>
             <groupId>org.grad.secom</groupId>
-            <artifactId>secom-springboot3</artifactId>
+            <artifactId>secom-v2-springboot3</artifactId>
             <version>${version.secomlib}</version>
         </dependency>
         
@@ -175,6 +180,43 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <!-- Generate META-INF/build-info.properties so /actuator/info
+                         reports build.version + build.time. -->
+                    <execution>
+                        <goals>
+                            <goal>build-info</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Stamp the git commit into git.properties so /actuator/info
+                 answers "what's deployed". -->
+            <plugin>
+                <groupId>io.github.git-commit-id</groupId>
+                <artifactId>git-commit-id-maven-plugin</artifactId>
+                <version>9.0.1</version>
+                <executions>
+                    <execution>
+                        <id>get-the-git-infos</id>
+                        <goals>
+                            <goal>revision</goal>
+                        </goals>
+                        <phase>initialize</phase>
+                    </execution>
+                </executions>
+                <configuration>
+                    <failOnNoGitDirectory>false</failOnNoGitDirectory>
+                    <generateGitPropertiesFile>true</generateGitPropertiesFile>
+                    <includeOnlyProperties>
+                        <property>git.branch</property>
+                        <property>git.commit.id.abbrev</property>
+                        <property>git.commit.id.full</property>
+                        <property>git.commit.time</property>
+                        <property>git.dirty</property>
+                    </includeOnlyProperties>
+                </configuration>
             </plugin>
 
             <!-- Liquibase Maven Plugin for database migrations -->
