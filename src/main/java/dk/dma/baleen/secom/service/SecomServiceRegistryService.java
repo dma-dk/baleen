@@ -72,8 +72,19 @@ public final class SecomServiceRegistryService {
 
         // If this fails, app will fail to start
         URI uri = URI.create(serviceRegistryUrl);
-      //  secomConfig.setTruststore(null);
-        SecomConfigProperties scp =new SecomConfigProperties();
+
+        // The discovery (service registry) client must present our MCP client certificate
+        // over mutual TLS, otherwise the SECOM v2 searchService is rejected. Mirror the
+        // GRAD reference (SecomV2Service) by reusing the configured keystore. We keep
+        // insecureSslPolicy=true for this client so the MSR's public TLS cert (issued by a
+        // public CA, not in the MCP truststore) is not rejected at the TLS layer.
+        SecomConfigProperties scp = new SecomConfigProperties();
+        scp.setKeystore(secomConfig.getKeystore());
+        scp.setKeystoreType(secomConfig.getKeystoreType());
+        scp.setKeystorePassword(secomConfig.getKeystorePassword());
+        scp.setTruststore(secomConfig.getTruststore());
+        scp.setTruststoreType(secomConfig.getTruststoreType());
+        scp.setTruststorePassword(secomConfig.getTruststorePassword());
         scp.setInsecureSslPolicy(true);
         serviceRegistryClient = new BaleenSecomClient(uri, scp);
     }

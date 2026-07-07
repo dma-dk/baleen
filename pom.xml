@@ -20,12 +20,9 @@
     
     <!-- ==================================================================== -->
     <properties>
-        <!-- Pinned to the exact May-2026 snapshot the deployed app was built against.
-             The bare 0.0.7-SNAPSHOT is mutable and has since drifted (a June build
-             removed GetSummaryResponseObject.setInformationSummaryObject and changed
-             SecomSignatureProvider.validateSignature), which breaks compilation. Pin so
-             rebuilds are reproducible; revisit when intentionally adopting a newer secom. -->
-        <version.secomlib>0.0.7-20260515.145929-8</version.secomlib>
+        <!-- Released secom-v2 (resolved from the `grad` repo). Moved off the mutable
+             0.0.7-SNAPSHOT which had drifted and broke reproducible builds. -->
+        <version.secomlib>0.1.0</version.secomlib>
         <java.version>25</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>

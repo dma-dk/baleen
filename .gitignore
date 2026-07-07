@@ -25,3 +25,7 @@ src/main/resources/static/
 src/main/resources/secom/keystore.p12
 testenv.sh
 .gstack/
+
+# MCP certificates / keystores and the local MSR reproducer (never commit private keys)
+cert/
+*.p12

@@ -153,11 +153,12 @@ public class SecomGetController extends AbstractSecomController implements GetSe
             so.setContainerType(containerType);
             so.setDataProductType(dataProductType);
             so.setInfo_size(ds.toByteArray().length % 1024L);
+            summaryObjects.add(so);
         }
 
         // Create and return the response
         GetSummaryResponseObject response = new GetSummaryResponseObject();
-        response.setInformationSummaryObject(summaryObjects);
+        response.setSummaryObject(summaryObjects);
         response.setPagination(new PaginationObject(summaryObjects.size(), pageSize == null ? Integer.MAX_VALUE : pageSize));
         return response;
     }

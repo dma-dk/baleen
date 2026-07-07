@@ -45,45 +45,41 @@ public class BaleenSignatureProvider implements SecomSignatureProvider {
 
     /** {@inheritDoc} */
     @Override
-    public byte[] generateSignature(DigitalSignatureCertificate signatureCertificate, DigitalSignatureAlgorithmEnum algorithm, byte[] payload) {
-        // Create a new signature to sign the provided content
+    public DigitalSignatureAlgorithmEnum getSignatureAlgorithm() {
+        return DigitalSignatureAlgorithmEnum.SHA3_384_WITH_ECDSA;
+    }
+
+    /**
+     * {@inheritDoc}
+     *
+     * secom-v2 0.1.0 made the algorithm-carrying overload a default method that delegates
+     * here; the algorithm is taken from {@link #getSignatureAlgorithm()}.
+     */
+    @Override
+    public byte[] generateSignature(DigitalSignatureCertificate signatureCertificate, byte[] payload) {
         try {
-            //
-//          System.out.println("Algorithm " + algorithm.getValue());
-//          System.out.println("Signature hash" +  Arrays.hashCode(signature));
-//          System.out.println("Payload hash " + Arrays.hashCode(payload));
-//
-//          System.out.println("_-------- trying to validate");
-//
-//          sign = Signature.getInstance(algorithm.getValue());
-//          String pem = SecomPemUtils.getMinifiedPemFromCert(SecomPKI.mcpServiceCertificate());
-//          X509Certificate cert = SecomPemUtils.getCertFromPem(pem);
-//          sign.initVerify(cert);
-//          sign.update(payload);
-//          System.out.println(sign.verify(signature));
-            return pki.sign(algorithm.getValue(), payload);
+            return pki.sign(getSignatureAlgorithm().getValue(), payload);
         } catch (GeneralSecurityException ex) {
             LOGGER.error("Failed to sign outgoing message", ex);
             throw new SecurityException(ex);
         }
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     *
+     * secom-v2 0.1.0 made the algorithm-carrying overload a default method that delegates
+     * here; the algorithm is taken from {@link #getSignatureAlgorithm()}.
+     */
     @Override
-    public DigitalSignatureAlgorithmEnum getSignatureAlgorithm() {
-        return DigitalSignatureAlgorithmEnum.SHA3_384_WITH_ECDSA;
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public boolean validateSignature(String[] signatureCertificate, DigitalSignatureAlgorithmEnum algorithm, byte[] signature, byte[] content) {
+    public boolean validateSignature(String[] signatureCertificate, byte[] signature, byte[] content) {
         if (signatureCertificate == null || signatureCertificate.length == 0) {
             return false;
         }
         // Get the X.509 certificate from the request (first cert in chain is the signer)
         try {
             X509Certificate cert = SecomPemUtils.getCertFromPem(signatureCertificate[0]);
-            Signature verification = Signature.getInstance(algorithm.getValue());
+            Signature verification = Signature.getInstance(getSignatureAlgorithm().getValue());
             verification.initVerify(cert);
             verification.update(content);
             return verification.verify(signature);
