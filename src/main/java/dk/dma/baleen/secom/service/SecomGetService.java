@@ -18,6 +18,7 @@ package dk.dma.baleen.secom.service;
 import static java.util.Objects.requireNonNull;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 import org.grad.secomv2.core.exceptions.SecomNotImplementedException;
@@ -49,13 +50,7 @@ public class SecomGetService {
 
     public Page<? extends DataSet> get(AuthenticatedMcpNode remoteNode, UUID dataReference, SECOM_DataProductType dataProductType, String productVersion, String geometry,
             String unlocode, Geometry jtsGeometry, LocalDateTime validFrom, LocalDateTime validTo, Integer page, Integer pageSize) {
-        S100DataProductType pt = switch (dataProductType) {
-        case S124 -> S100DataProductType.S124;
-        default -> throw new SecomNotImplementedException(dataProductType + " not supported, supported products: " + productManager.supportedProducts());
-        };
-
-        S100DataProductService dataProduct = productManager.find(pt)
-                .orElseThrow(() -> new SecomNotImplementedException(dataProductType + " not supported, supported products: " + productManager.supportedProducts()));
+        S100DataProductService dataProduct = dataProduct(dataProductType);
 
         Pageable pageable = Pageable.unpaged();
         if (page != null) {
@@ -64,5 +59,20 @@ public class SecomGetService {
         }
 
         return dataProduct.findAll(dataReference, jtsGeometry, validFrom, validTo, pageable);
+    }
+
+    /** {@return the datasets packaged as a single S-100 exchange set} */
+    public byte[] createExchangeSet(SECOM_DataProductType dataProductType, List<? extends DataSet> datasets) {
+        return dataProduct(dataProductType).createExchangeSet(datasets);
+    }
+
+    private S100DataProductService dataProduct(SECOM_DataProductType dataProductType) {
+        S100DataProductType pt = switch (dataProductType) {
+        case S124 -> S100DataProductType.S124;
+        default -> throw new SecomNotImplementedException(dataProductType + " not supported, supported products: " + productManager.supportedProducts());
+        };
+
+        return productManager.find(pt)
+                .orElseThrow(() -> new SecomNotImplementedException(dataProductType + " not supported, supported products: " + productManager.supportedProducts()));
     }
 }

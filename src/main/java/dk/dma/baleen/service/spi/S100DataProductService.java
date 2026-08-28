@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import org.grad.secomv2.core.exceptions.SecomNotImplementedException;
 import org.grad.secomv2.core.models.CapabilityObject;
 import org.locationtech.jts.geom.Geometry;
 import org.springframework.data.domain.Page;
@@ -43,6 +44,16 @@ public abstract class S100DataProductService {
     public Page<? extends DataSet> findAll(@Nullable UUID uuid, @Nullable Geometry geometry, @Nullable LocalDateTime fromTime, @Nullable LocalDateTime toTime,
             Pageable pageable) {
         throw new UnsupportedOperationException("Not supported");
+    }
+
+    /**
+     * {@return the datasets packaged as a single S-100 exchange set}
+     *
+     * @param datasets
+     *            the datasets to package, must not be empty
+     */
+    public byte[] createExchangeSet(List<? extends DataSet> datasets) {
+        throw new SecomNotImplementedException(type + " does not support exchange sets");
     }
 
     public abstract void upload(DatasetUploadGmlDto d) throws Exception;

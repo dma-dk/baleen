@@ -28,8 +28,10 @@ import java.security.PrivateKey;
 import java.security.Signature;
 import java.security.cert.Certificate;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Enumeration;
+import java.util.List;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -69,6 +71,9 @@ public class MCPSecurityService {
     /** The MCP service certificate for this Baleen instance. */
     private final X509Certificate MCP_SERVICE_CERTIFICATE;
 
+    /** The CA certificates between the service certificate and the trust anchor. */
+    private final List<X509Certificate> MCP_INTERMEDIATE_CERTIFICATES;
+
     private final PrivateKey PRIVATE_KEY;
 
     private final KeyStore truststore;
@@ -86,6 +91,7 @@ public class MCPSecurityService {
         this.truststore = loadTrustStore(config);
         this.config = requireNonNull(config);
         MCP_SERVICE_CERTIFICATE = requireNonNull(loadCertificate(keystore));
+        MCP_INTERMEDIATE_CERTIFICATES = loadIntermediateCertificates(keystore);
         
         Enumeration<String> aliases = truststore.aliases();
         while (aliases.hasMoreElements()) {
@@ -168,6 +174,17 @@ public class MCPSecurityService {
         return MCP_SERVICE_CERTIFICATE;
     }
 
+    /**
+     * {@return the CA certificates between the service certificate and the trust anchor}
+     *
+     * The service certificate itself and any self-signed root are left out. S-100 Part 15, clause 15-8.7, requires an
+     * exchange set to carry the intermediates so a receiver can build the certification path without network access,
+     * while the root is installed on the receiving system and must not be shipped.
+     */
+    public List<X509Certificate> mcpIntermediateCertificates() {
+        return MCP_INTERMEDIATE_CERTIFICATES;
+    }
+
     public byte[] sign(String algorithm, byte[] payload) throws GeneralSecurityException {
         Signature sign = Signature.getInstance(algorithm);
         sign.initSign(PRIVATE_KEY);
@@ -240,6 +257,24 @@ public class MCPSecurityService {
 
     public String trustStoreRootAlias() {
         return "mcp identity registry (mcp root certificate)";// "urn:mrn:mcp:ca:mcc:mcp";
+    }
+
+    private static List<X509Certificate> loadIntermediateCertificates(KeyStore keystore) throws Exception {
+        Certificate[] chain = keystore.getCertificateChain(KEYSTORE_ALIAS);
+        if (chain == null) {
+            return List.of();
+        }
+        List<X509Certificate> intermediates = new ArrayList<>();
+        for (int i = 1; i < chain.length; i++) { // the leaf at index 0 is the service certificate
+            if (chain[i] instanceof X509Certificate x509Cert && !isSelfSigned(x509Cert)) {
+                intermediates.add(x509Cert);
+            }
+        }
+        return List.copyOf(intermediates);
+    }
+
+    private static boolean isSelfSigned(X509Certificate cert) {
+        return cert.getSubjectX500Principal().equals(cert.getIssuerX500Principal());
     }
 
     private static X509Certificate loadCertificate(KeyStore keystore) throws Exception {
