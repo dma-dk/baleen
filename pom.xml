@@ -23,6 +23,8 @@
         <!-- Released secom-v2 (resolved from the `grad` repo). Moved off the mutable
              0.0.7-SNAPSHOT which had drifted and broke reproducible builds. -->
         <version.secomlib>0.1.0</version.secomlib>
+        <!-- Released S-100/S-124 JAXB bindings from NiordOrg/niord-xml-bindings (JitPack). -->
+        <version.xmlbindings>0.1.0</version.xmlbindings>
         <java.version>25</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
@@ -89,11 +91,12 @@
             <version>1.18.1</version>
         </dependency>
         
-        <!-- S-100 XML Bindings -->
+        <!-- S-100/S-124 XML Bindings, incl. the S-100 Part 17 exchange set support.
+             Pulls in s100-5_2_0-xml-bindings transitively. -->
         <dependency>
-      <groupId>com.github.NiordOrg.niord-s124-xml-bindings</groupId>
-      <artifactId>s124-2_0_1-xml-bindings</artifactId>
-      <version>v0.0.6</version>
+            <groupId>com.github.NiordOrg.niord-s124-xml-bindings</groupId>
+            <artifactId>s124-2_0_1-xml-bindings</artifactId>
+            <version>${version.xmlbindings}</version>
         </dependency>
 
         <!-- Spring Boot -->

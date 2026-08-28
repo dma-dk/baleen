@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.grad.secomv2.core.exceptions.SecomNotImplementedException;
 import org.grad.secomv2.core.exceptions.SecomValidationException;
 import org.grad.secomv2.core.interfaces.GetServiceInterface;
 import org.grad.secomv2.core.interfaces.GetSummaryServiceInterface;
@@ -84,6 +83,7 @@ public class SecomGetController extends AbstractSecomController implements GetSe
         if (containerType == null) {
             containerType = ContainerTypeEnum.S100_DataSet;
         }
+        dataProductType = defaultDataProductType(dataProductType);
 
         // Find all data from th
         Page<? extends DataSet> data = get0(dataReference, dataProductType, productVersion, geometry, unlocode, toLocal(validFrom), toLocal(validTo), page, pageSize);
@@ -102,25 +102,45 @@ public class SecomGetController extends AbstractSecomController implements GetSe
 
                 objects.add(dro);
             }
-        } else if (containerType == ContainerTypeEnum.S100_ExchangeSet) {
-            throw new SecomNotImplementedException("Baleen does not currently support exchange sets");
+        } else if (containerType == ContainerTypeEnum.S100_ExchangeSet && data.hasContent()) {
+            // S-100 Part 17: the whole result is one exchange set - a ZIP holding the dataset files and the
+            // catalogue that describes and signs them - so it is a single response object, not one per dataset.
+            DataResponseObject dro = new DataResponseObject();
+            dro.setData(secomGetService.createExchangeSet(dataProductType, data.getContent()));
+
+            ExchangeMetadata emo = new ExchangeMetadata();
+            emo.setCompressionFlag(false); // the exchange set is the data format, not a SECOM compressed payload
+            emo.setDataProtection(false);
+            dro.setExchangeMetadata(emo);
+
+            objects.add(dro);
         }
 
         GetResponseObject response = new GetResponseObject();
         response.setDataResponseObject(objects);
-        response.setPagination(new PaginationObject(objects.size(), Optional.ofNullable(pageSize).orElse(Integer.MAX_VALUE)));
+        // The matching datasets, not the objects returned for this page: an exchange set packages the whole
+        // page into a single response object, so counting those would tell a paging client that everything
+        // it asked for arrived and leave the remaining pages unfetched.
+        response.setPagination(new PaginationObject(totalItems(data), Optional.ofNullable(pageSize).orElse(Integer.MAX_VALUE)));
         return response;
+    }
+
+    /** {@return the number of datasets matching the query, across all pages} */
+    private static int totalItems(Page<? extends DataSet> data) {
+        return (int) Math.min(data.getTotalElements(), Integer.MAX_VALUE);
     }
 
     private static LocalDateTime toLocal(Instant instant) {
         return instant == null ? null : LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
     }
 
+    /** S-124 is the only data product Baleen serves, so an unspecified data product type asks for that one. */
+    private static SECOM_DataProductType defaultDataProductType(SECOM_DataProductType dataProductType) {
+        return dataProductType == null ? SECOM_DataProductType.S124 : dataProductType;
+    }
+
     private Page<? extends DataSet> get0(UUID dataReference, SECOM_DataProductType dataProductType, String productVersion, String geometry, String unlocode,
             LocalDateTime validFrom, LocalDateTime validTo, Integer page, Integer pageSize) {
-        if (dataProductType == null) {
-            dataProductType = SECOM_DataProductType.S124;
-        }
         Geometry jtsGeometry = parseGeometry(geometry, unlocode);
 
         return secomGetService.get(mrn(), dataReference, dataProductType, productVersion, geometry, unlocode, jtsGeometry, validFrom, validTo, page, pageSize);
@@ -138,7 +158,17 @@ public class SecomGetController extends AbstractSecomController implements GetSe
             @QueryParam("validTo") @Parameter(example = "20200101T123000", schema = @Schema(implementation = String.class, pattern = "(\\d{8})T(\\d{6})")) Instant validTo,
             @QueryParam("page") Integer page, @QueryParam("pageSize") Integer pageSize) {
 
-        // containerType has mandatory processing, but have no idea what do with it
+        // Validate/resolve the container type the same way get() does, so the summary reports a
+        // container type that get() can actually deliver.
+        if (containerType == ContainerTypeEnum.NONE) {
+            throw new SecomValidationException("NONE cannot be specified for containerType");
+        }
+        if (containerType == null) {
+            containerType = ContainerTypeEnum.S100_DataSet;
+        }
+
+        // Resolve this here as well, so the summary reports what was actually queried
+        dataProductType = defaultDataProductType(dataProductType);
 
         // Find all relevant data
         Page<? extends DataSet> data = get0(null, dataProductType, productVersion, geometry, unlocode, toLocal(validFrom), toLocal(validTo), page, pageSize);
@@ -152,14 +182,20 @@ public class SecomGetController extends AbstractSecomController implements GetSe
             so.setDataCompression(Boolean.FALSE);
             so.setContainerType(containerType);
             so.setDataProductType(dataProductType);
-            so.setInfo_size(ds.toByteArray().length % 1024L);
+            if (containerType == ContainerTypeEnum.S100_DataSet) {
+                // The size of what get() would return for this data reference. For an exchange set that is a
+                // signed ZIP whose size is only known once the whole thing has been built and signed, which is
+                // too much work for a listing - and the GML length would misstate the download - so the
+                // optional attribute is left out rather than filled in wrongly.
+                so.setInfo_size((long) ds.toByteArray().length);
+            }
             summaryObjects.add(so);
         }
 
         // Create and return the response
         GetSummaryResponseObject response = new GetSummaryResponseObject();
         response.setSummaryObject(summaryObjects);
-        response.setPagination(new PaginationObject(summaryObjects.size(), pageSize == null ? Integer.MAX_VALUE : pageSize));
+        response.setPagination(new PaginationObject(totalItems(data), pageSize == null ? Integer.MAX_VALUE : pageSize));
         return response;
     }
 }

@@ -75,24 +75,36 @@ public class S124Service extends S100DataProductService {
         ArrayList<CapabilityObject> all = new ArrayList<>();
 
         for (S124SupportedVersions v : S124SupportedVersions.values()) {
-            ImplementedInterfaces implementedInterfaces = new ImplementedInterfaces();
-            implementedInterfaces.setGetSummary(true);
-            implementedInterfaces.setGet(true);
-            implementedInterfaces.setSubscription(true);
+            // Datasets are served as plain GML and packaged into S-100 Part 17 exchange sets, one capability each.
+            for (ContainerTypeEnum containerType : List.of(ContainerTypeEnum.S100_DataSet, ContainerTypeEnum.S100_ExchangeSet)) {
+                ImplementedInterfaces implementedInterfaces = new ImplementedInterfaces();
+                implementedInterfaces.setGetSummary(true);
+                implementedInterfaces.setGet(true);
+                implementedInterfaces.setSubscription(true);
 
-            CapabilityObject capabilityObject = new CapabilityObject();
-            capabilityObject.setContainerType(ContainerTypeEnum.S100_DataSet);
-            capabilityObject.setDataProductType(SECOM_DataProductType.S124);
-            capabilityObject.setImplementedInterfaces(implementedInterfaces);
-            capabilityObject.setServiceVersion(v.serviceVersion());
+                CapabilityObject capabilityObject = new CapabilityObject();
+                capabilityObject.setContainerType(containerType);
+                capabilityObject.setDataProductType(SECOM_DataProductType.S124);
+                capabilityObject.setImplementedInterfaces(implementedInterfaces);
+                capabilityObject.setServiceVersion(v.serviceVersion());
 
-            all.add(capabilityObject);
+                all.add(capabilityObject);
+            }
         }
         return List.copyOf(all);
     }
 
     @Autowired
     NiordApiCaller niordApi;
+
+    @Autowired
+    S124ExchangeSetService exchangeSetService;
+
+    /** {@inheritDoc} */
+    @Override
+    public byte[] createExchangeSet(List<? extends DataSet> datasets) {
+        return exchangeSetService.createExchangeSet(datasets);
+    }
 
     /** {@inheritDoc} */
     @Override
@@ -214,7 +226,7 @@ public class S124Service extends S100DataProductService {
 
             @Override
             protected byte[] createExchangeSet() {
-                throw new UnsupportedOperationException();
+                return exchangeSetService.createExchangeSet(List.of(entity));
             }
 
             @Override

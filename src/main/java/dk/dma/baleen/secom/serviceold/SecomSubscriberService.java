@@ -84,16 +84,26 @@ public class SecomSubscriberService {
             envelope.setSubscriptionIdentifier(e.getId());
             envelope.setAckRequest(AckRequestEnum.DELIVERED_ACK_REQUESTED);
             envelope.setTransactionIdentifier(upl.getTransactionIdentifier());
-            envelope.setContainerType(ContainerTypeEnum.S100_DataSet);
 
-            envelope.setData(generator.getDataset());
+            // Deliver what the subscriber asked for. Subscriptions taken before the container type was
+            // recorded have none, and those were all served datasets, so that stays the default.
+            ContainerTypeEnum containerType = e.getContainerType() == ContainerTypeEnum.S100_ExchangeSet ? ContainerTypeEnum.S100_ExchangeSet
+                    : ContainerTypeEnum.S100_DataSet;
+            envelope.setContainerType(containerType);
+
+            // Packaging is per subscriber - an exchange set is built and signed here, and that can fail on a
+            // non-conformant dataset - so one subscriber whose data cannot be produced must not cost the
+            // remaining ones their delivery. Only packaging is caught: the outbox has no persistence or
+            // retry, so a swallowed delivery failure would lose the publication for that subscriber for
+            // good, whereas letting it out rolls this publication back together with the upload that
+            // triggered it, where it is at least visible and can be retried.
+            try {
+                envelope.setData(containerType == ContainerTypeEnum.S100_ExchangeSet ? generator.getExchangeSet() : generator.getDataset());
+            } catch (RuntimeException ex) {
+                logger.error("Could not package {} {} for subscriber {}", containerType, dataReference, e.getNode().getMrn(), ex);
+                continue;
+            }
             requireNonNull(envelope.getData());
-//
-//            if (e.getContainerType() == ContainerTypeEnum.S100_DataSet) {
-//                envelope.setData(generator.getDataset());
-//            } else if (e.getContainerType() == ContainerTypeEnum.S100_ExchangeSet) {
-//                envelope.setData(generator.getExchangeSet());
-//            }
 
             // Set the envelope to the upload object
             UploadObject uploadObject = new UploadObject();
@@ -123,6 +133,11 @@ public class SecomSubscriberService {
         SecomNodeEntity sne = nodeRepository.findOrCreate(node.mrn());
 
         subscription.setNode(sne);
+
+        // The delivery format publish() reads back. NONE is not one, so anything but an exchange set
+        // request is served datasets.
+        ContainerTypeEnum requested = request.getEnvelope() == null ? null : request.getEnvelope().getContainerType();
+        subscription.setContainerType(requested == ContainerTypeEnum.S100_ExchangeSet ? ContainerTypeEnum.S100_ExchangeSet : ContainerTypeEnum.S100_DataSet);
 
         subscriptionRepository.save(subscription);
         UUID uuid = subscription.getId();
