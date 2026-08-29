@@ -16,7 +16,7 @@
 package dk.dma.baleen.service.s124.service;
 
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +28,8 @@ import org.grad.secomv2.core.models.ImplementedInterfaces;
 import org.grad.secomv2.core.models.enums.ContainerTypeEnum;
 import org.grad.secomv2.core.models.enums.SECOM_DataProductType;
 import org.locationtech.jts.geom.Geometry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -58,6 +60,9 @@ import dk.dma.baleen.service.spi.S100DataProductType;
  */
 @Service
 public class S124Service extends S100DataProductService {
+
+    /** The logger of this class. */
+    private static final Logger LOGGER = LoggerFactory.getLogger(S124Service.class);
 
     @Autowired
     S124DatasetInstanceRepository repository;
@@ -106,32 +111,192 @@ public class S124Service extends S100DataProductService {
         return exchangeSetService.createExchangeSet(datasets);
     }
 
-    /** {@inheritDoc} */
+    /**
+     * {@inheritDoc}
+     * <p>
+     * The datasets are the ones {@link NiordApiCaller} keeps current, not the ones {@link #upload(String)} has stored:
+     * nothing feeds the store on its own, so serving from it would hand out whatever was last loaded by hand. The
+     * store therefore still has {@code findDatasets} for when something does keep it in sync; until then this is where
+     * the current warnings are, and the query has to be answered against them.
+     */
     @Override
-    public Page<? extends DataSet> findAll(@Nullable UUID uuid, Geometry geometry, LocalDateTime fromTime, LocalDateTime toTime, Pageable pageable) {
-//        return repository.findDatasets(uuid, geometry, fromTime, toTime, pageable);
-        return getStatic();
+    public Page<? extends DataSet> findAll(@Nullable UUID uuid, @Nullable Geometry geometry, @Nullable Instant fromTime, @Nullable Instant toTime,
+            @Nullable Pageable pageable) {
+        List<NiordDataSet> matching = datasets().stream().filter(ds -> ds.matches(uuid, geometry, fromTime, toTime)).toList();
+        return page(matching, pageable);
     }
 
-    private Page<? extends DataSet> getStatic() {
-        List<DataSet> l = new ArrayList<>();
-        List<Result> fetchAll = niordApi.getIt();
-        for (Result result : fetchAll) {
-            l.add(new DataSet() {
-
-                @Override
-                public UUID uuid() {
-                    return UUID.randomUUID();
-                }
-
-                @Override
-                public byte[] toByteArray() {
-                    return result.xml().getBytes(StandardCharsets.UTF_8);
-                }
-            });
+    /**
+     * {@return the page of {@code matching} that {@code pageable} asks for}
+     * <p>
+     * The total is the number of matches rather than the size of the page, so a client that pages knows how much is
+     * still to come.
+     */
+    private static <T> Page<T> page(List<T> matching, @Nullable Pageable pageable) {
+        if (pageable == null || pageable.isUnpaged()) {
+            return new PageImpl<>(matching);
         }
-        // Set Data (Xml document)
-        return new PageImpl<DataSet>(l);
+        long offset = pageable.getOffset();
+        if (offset >= matching.size()) {
+            return new PageImpl<>(List.of(), pageable, matching.size());
+        }
+        int from = (int) offset;
+        int to = (int) Math.min(matching.size(), offset + pageable.getPageSize());
+        return new PageImpl<>(matching.subList(from, to), pageable, matching.size());
+    }
+
+    /** The datasets last polled from Niord, and the poll they were derived from. */
+    private volatile List<NiordDataSet> view = List.of();
+
+    private volatile List<Result> viewSource;
+
+    /**
+     * {@return the current Niord datasets, in a form the query can be answered against}
+     * <p>
+     * Deriving a data reference, an extent and a validity period means parsing the dataset, which is too much to redo
+     * for every request. {@link NiordApiCaller} replaces its whole list on each poll, so the list it hands back
+     * identifies the poll it came from and the derived view can be reused until that changes. Two requests arriving
+     * together on a fresh poll may both derive it, which costs a little work and no correctness.
+     */
+    private List<NiordDataSet> datasets() {
+        List<Result> source = niordApi.getIt();
+        if (source == null) {
+            return List.of();
+        }
+        if (source != viewSource) {
+            view = source.stream().map(NiordDataSet::of).toList();
+            viewSource = source;
+        }
+        return view;
+    }
+
+    /**
+     * A dataset as Niord serves it, with the attributes a SECOM query filters on read out of it once.
+     *
+     * @param uuid
+     *            the data reference, derived from the warning's MRN so that a reference taken from a summary can be
+     *            used to get the dataset back - which a fresh random id could not
+     * @param gml
+     *            the dataset as Niord served it, byte for byte
+     * @param geometry
+     *            the extent of the warning, or null if it declares none or we could not read it
+     * @param validity
+     *            the period the warning is in force, or null if we could not read it - which is not the same as a
+     *            warning that declares no bounds, and must not be read as one
+     */
+    private record NiordDataSet(UUID uuid, byte[] gml, @Nullable Geometry geometry, @Nullable Validity validity) implements DataSet {
+
+        static NiordDataSet of(Result result) {
+            byte[] gml = result.xml().getBytes(StandardCharsets.UTF_8);
+            Dataset dataset = result.dataset();
+            // Read once and share: each dimension fails on its own, so a dataset whose geometry we cannot parse still
+            // answers time queries from a preamble that reads perfectly well, and the other way round.
+            NavwarnPreamble preamble = preambleOf(dataset);
+            return new NiordDataSet(uuidOf(dataset, preamble, gml), gml, extentOf(dataset), validityOf(preamble));
+        }
+
+        /** {@return the warning's preamble, or null if the dataset does not carry exactly one we can read} */
+        private static NavwarnPreamble preambleOf(Dataset dataset) {
+            try {
+                return S124DatasetReader.findPreamble(dataset);
+            } catch (RuntimeException e) {
+                LOGGER.warn("Could not read the preamble of dataset {}, so neither its validity nor its MRN is known",
+                        dataset.getId(), e);
+                return null;
+            }
+        }
+
+        /** {@return the extent of the warning, or null if it declares none or we could not read it} */
+        private static Geometry extentOf(Dataset dataset) {
+            try {
+                return S124DatasetReader.calculateGeometry(dataset);
+            } catch (RuntimeException e) {
+                LOGGER.warn("Could not read the extent of dataset {}, so it will not match a query naming an area",
+                        dataset.getId(), e);
+                return null;
+            }
+        }
+
+        /**
+         * {@return the period the warning is in force, or null if that is unknown}
+         * <p>
+         * A warning that declares no publication time or no cancellation is open at that end, which is a statement
+         * about the warning. A preamble we could not read is not: it says nothing, and null keeps the two apart.
+         */
+        private static Validity validityOf(@Nullable NavwarnPreamble preamble) {
+            if (preamble == null) {
+                return null;
+            }
+            OffsetDateTime published = preamble.getPublicationTime();
+            OffsetDateTime cancelled = preamble.getCancellationDate();
+            return new Validity(published == null ? null : published.toInstant(), cancelled == null ? null : cancelled.toInstant());
+        }
+
+        /**
+         * {@return a data reference that is the same every time for the same warning}
+         * <p>
+         * The MRN names the warning, so the reference derived from it survives a poll, a restart and a redeploy. A
+         * dataset we cannot get an MRN out of falls back to its own content, which is stable for as long as the
+         * warning is unchanged - still better than the random id this used to hand out, which made every reference a
+         * summary reported unusable in the get that followed.
+         */
+        private static UUID uuidOf(Dataset dataset, @Nullable NavwarnPreamble preamble, byte[] gml) {
+            try {
+                if (preamble != null && preamble.getMessageSeriesIdentifier() != null) {
+                    return MRNToUUID.createUUIDFromMRN(S124DatasetReader.toMRN(preamble.getMessageSeriesIdentifier()));
+                }
+            } catch (Exception e) {
+                LOGGER.warn("Could not derive a data reference from the MRN of dataset {}, falling back to its content", dataset.getId(), e);
+            }
+            return UUID.nameUUIDFromBytes(gml);
+        }
+
+        /** {@return whether this dataset satisfies every dimension the query constrains} */
+        boolean matches(@Nullable UUID uuid, @Nullable Geometry geometry, @Nullable Instant fromTime, @Nullable Instant toTime) {
+            if (uuid != null && !uuid.equals(this.uuid)) {
+                return false;
+            }
+            // A dataset that declares no extent cannot be shown to lie inside the area of interest, so it does not
+            // match a query that names one - the same answer a spatial store gives for a null geometry.
+            if (geometry != null && (this.geometry == null || !geometry.intersects(this.geometry))) {
+                return false;
+            }
+            if (fromTime == null && toTime == null) {
+                return true;
+            }
+            // A period was asked for and we could not read this warning's own, so there is no honest way to say it
+            // falls inside one. Answering yes would put a warning that may have been cancelled years ago in front of
+            // a mariner asking what is in force now, which is the worse of the two mistakes.
+            return validity != null && validity.overlaps(fromTime, toTime);
+        }
+
+        @Override
+        public byte[] toByteArray() {
+            return gml;
+        }
+    }
+
+    /**
+     * The period a warning is in force, as the warning itself declares it.
+     *
+     * @param from
+     *            when it was published, or null if it does not say and so has always been in force
+     * @param to
+     *            when it was cancelled, or null if it is still in force
+     */
+    private record Validity(@Nullable Instant from, @Nullable Instant to) {
+
+        /**
+         * {@return whether this period overlaps the one asked about}
+         * <p>
+         * An end that neither side declares is open, and an open end cannot exclude anything.
+         */
+        boolean overlaps(@Nullable Instant fromTime, @Nullable Instant toTime) {
+            if (fromTime != null && to != null && to.isBefore(fromTime)) {
+                return false;
+            }
+            return !(toTime != null && from != null && from.isAfter(toTime));
+        }
     }
 
     /** {@inheritDoc} */

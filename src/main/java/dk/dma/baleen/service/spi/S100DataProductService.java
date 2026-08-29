@@ -15,7 +15,7 @@
  */
 package dk.dma.baleen.service.spi;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -41,8 +41,26 @@ public abstract class S100DataProductService {
 
     public abstract List<CapabilityObject> secomCapabilities();
 
-    public Page<? extends DataSet> findAll(@Nullable UUID uuid, @Nullable Geometry geometry, @Nullable LocalDateTime fromTime, @Nullable LocalDateTime toTime,
-            Pageable pageable) {
+    /**
+     * {@return the datasets matching the query, as one page}
+     * <p>
+     * A null argument means the query does not constrain that dimension. The times bound a period of interest, and a
+     * dataset matches when its own validity period overlaps it; a dataset whose validity is open at either end extends
+     * to infinity there.
+     *
+     * @param uuid
+     *            the data reference of a single dataset, or null for all of them
+     * @param geometry
+     *            the area of interest, or null for anywhere
+     * @param fromTime
+     *            the start of the period of interest, or null for the beginning of time
+     * @param toTime
+     *            the end of the period of interest, or null for the end of time
+     * @param pageable
+     *            the page to return, or null for all matches in one page
+     */
+    public Page<? extends DataSet> findAll(@Nullable UUID uuid, @Nullable Geometry geometry, @Nullable Instant fromTime, @Nullable Instant toTime,
+            @Nullable Pageable pageable) {
         throw new UnsupportedOperationException("Not supported");
     }
 
