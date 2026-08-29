@@ -45,6 +45,8 @@ import jakarta.servlet.http.HttpServletRequest;
  * A paged response must report how many datasets matched the query, not how many objects this page carries. An
  * exchange set packages a whole page into a single response object, so counting those would tell the client
  * everything arrived and leave the remaining pages unfetched.
+ * <p>
+ * The page numbers here are the SECOM ones, which start at 1.
  */
 class SecomGetControllerPaginationTest {
 
@@ -58,7 +60,7 @@ class SecomGetControllerPaginationTest {
         SecomGetController controller = controller(service);
         when(service.createExchangeSet(eq(SECOM_DataProductType.S124), any())).thenReturn(new byte[] { 'P', 'K' });
 
-        GetResponseObject response = controller.get(null, ContainerTypeEnum.S100_ExchangeSet, SECOM_DataProductType.S124, null, null, null, null, null, 0,
+        GetResponseObject response = controller.get(null, ContainerTypeEnum.S100_ExchangeSet, SECOM_DataProductType.S124, null, null, null, null, null, 1,
                 PAGE_SIZE);
 
         assertThat(response.getDataResponseObject()).hasSize(1); // the page, packaged as one exchange set
@@ -70,7 +72,7 @@ class SecomGetControllerPaginationTest {
     void datasetPageReportsAllMatchingDatasetsAsTotal() {
         SecomGetController controller = controller(pagedService());
 
-        GetResponseObject response = controller.get(null, ContainerTypeEnum.S100_DataSet, SECOM_DataProductType.S124, null, null, null, null, null, 0, PAGE_SIZE);
+        GetResponseObject response = controller.get(null, ContainerTypeEnum.S100_DataSet, SECOM_DataProductType.S124, null, null, null, null, null, 1, PAGE_SIZE);
 
         assertThat(response.getDataResponseObject()).hasSize(PAGE_SIZE);
         assertThat(response.getPagination().getTotalItems()).isEqualTo(TOTAL);
@@ -80,7 +82,7 @@ class SecomGetControllerPaginationTest {
     void summaryPageReportsAllMatchingDatasetsAsTotal() {
         SecomGetController controller = controller(pagedService());
 
-        GetSummaryResponseObject response = controller.getSummary(ContainerTypeEnum.S100_DataSet, SECOM_DataProductType.S124, null, null, null, null, null, 0,
+        GetSummaryResponseObject response = controller.getSummary(ContainerTypeEnum.S100_DataSet, SECOM_DataProductType.S124, null, null, null, null, null, 1,
                 PAGE_SIZE);
 
         assertThat(response.getSummaryObject()).hasSize(PAGE_SIZE);

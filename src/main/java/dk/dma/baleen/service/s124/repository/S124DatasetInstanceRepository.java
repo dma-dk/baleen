@@ -15,11 +15,10 @@
  */
 package dk.dma.baleen.service.s124.repository;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.locationtech.jts.geom.Geometry;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -35,19 +34,26 @@ import dk.dma.baleen.service.s124.model.S124DatasetInstanceEntity;
 @Repository
 public interface S124DatasetInstanceRepository extends JpaRepository<S124DatasetInstanceEntity, Long> {
 
+    /**
+     * {@return the stored datasets matching the query}
+     * <p>
+     * A dataset with no validFrom or no validTo is open ended at that end, so it must not be filtered out by a bound
+     * it never declared - hence the explicit null checks rather than a bare comparison, which SQL evaluates to unknown
+     * and therefore excludes.
+     * <p>
+     * The times are {@link Instant}s because that is what the entity stores; they used to be declared as
+     * {@code LocalDateTime}, which cannot be compared against an {@code Instant} column.
+     */
     @Query("""
             SELECT s FROM S124DatasetInstanceEntity s
             WHERE (:uuid IS NULL OR s.uuid = :uuid)
-            AND (:fromTime IS NULL OR s.validTo >= :fromTime)
-            AND (:toTime IS NULL OR s.validFrom <= :toTime)
+            AND (:fromTime IS NULL OR s.validTo IS NULL OR s.validTo >= :fromTime)
+            AND (:toTime IS NULL OR s.validFrom IS NULL OR s.validFrom <= :toTime)
             """)
-// removed             AND (:geometry IS NULL OR ST_Intersects(s.geometry, :geometry) = true)
-
     Page<S124DatasetInstanceEntity> findDatasets(
             @Param("uuid") UUID uuid,
-            @Param("geometry") Geometry geometry,
-            @Param("fromTime") LocalDateTime fromTime,
-            @Param("toTime") LocalDateTime toTime,
+            @Param("fromTime") Instant fromTime,
+            @Param("toTime") Instant toTime,
             Pageable pageable
     );
 

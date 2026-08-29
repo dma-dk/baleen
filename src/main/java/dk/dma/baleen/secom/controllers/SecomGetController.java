@@ -18,8 +18,6 @@ package dk.dma.baleen.secom.controllers;
 import static java.util.Objects.requireNonNull;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -58,6 +56,16 @@ import jakarta.ws.rs.QueryParam;
 @Validated
 public class SecomGetController extends AbstractSecomController implements GetServiceInterface , GetSummaryServiceInterface {
 
+    /**
+     * A time as SECOM v2 writes one. The documented example used to be the SECOM v1 basic form, {@code
+     * 20200101T123000}, which the v2 InstantConverter rejects with a 400 - so every client that followed the
+     * documentation got its query refused.
+     */
+    private static final String SECOM_DATE_TIME_EXAMPLE = "2020-01-01T12:30:00Z";
+
+    /** The extended ISO 8601 form the SECOM v2 InstantConverter parses, with the offset optional. */
+    private static final String SECOM_DATE_TIME_PATTERN = "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(Z|[+-]\\d{2}:\\d{2})?";
+
     /** A SECOM service that handle all get requests. */
     private SecomGetService secomGetService;
 
@@ -74,8 +82,8 @@ public class SecomGetController extends AbstractSecomController implements GetSe
     public GetResponseObject get(@QueryParam("dataReference") UUID dataReference, @QueryParam("containerType") ContainerTypeEnum containerType,
             @QueryParam("dataProductType") SECOM_DataProductType dataProductType, @QueryParam("productVersion") String productVersion,
             @QueryParam("geometry") String geometry, @QueryParam("unlocode") String unlocode,
-            @QueryParam("validFrom") @Parameter(example = "20200101T123000", schema = @Schema(implementation = String.class, pattern = "(\\d{8})T(\\d{6})")) Instant validFrom,
-            @QueryParam("validTo") @Parameter(example = "20200101T123000", schema = @Schema(implementation = String.class, pattern = "(\\d{8})T(\\d{6})")) Instant validTo,
+            @QueryParam("validFrom") @Parameter(example = SECOM_DATE_TIME_EXAMPLE, schema = @Schema(implementation = String.class, pattern = SECOM_DATE_TIME_PATTERN)) Instant validFrom,
+            @QueryParam("validTo") @Parameter(example = SECOM_DATE_TIME_EXAMPLE, schema = @Schema(implementation = String.class, pattern = SECOM_DATE_TIME_PATTERN)) Instant validTo,
             @QueryParam("page") Integer page, @QueryParam("pageSize") Integer pageSize) {
         if (containerType == ContainerTypeEnum.NONE) {
             throw new SecomValidationException("NONE cannot be specified for containerType");
@@ -86,7 +94,7 @@ public class SecomGetController extends AbstractSecomController implements GetSe
         dataProductType = defaultDataProductType(dataProductType);
 
         // Find all data from th
-        Page<? extends DataSet> data = get0(dataReference, dataProductType, productVersion, geometry, unlocode, toLocal(validFrom), toLocal(validTo), page, pageSize);
+        Page<? extends DataSet> data = get0(dataReference, dataProductType, productVersion, geometry, unlocode, validFrom, validTo, page, pageSize);
 
         List<DataResponseObject> objects = new ArrayList<>();
 
@@ -130,17 +138,13 @@ public class SecomGetController extends AbstractSecomController implements GetSe
         return (int) Math.min(data.getTotalElements(), Integer.MAX_VALUE);
     }
 
-    private static LocalDateTime toLocal(Instant instant) {
-        return instant == null ? null : LocalDateTime.ofInstant(instant, ZoneOffset.UTC);
-    }
-
     /** S-124 is the only data product Baleen serves, so an unspecified data product type asks for that one. */
     private static SECOM_DataProductType defaultDataProductType(SECOM_DataProductType dataProductType) {
         return dataProductType == null ? SECOM_DataProductType.S124 : dataProductType;
     }
 
     private Page<? extends DataSet> get0(UUID dataReference, SECOM_DataProductType dataProductType, String productVersion, String geometry, String unlocode,
-            LocalDateTime validFrom, LocalDateTime validTo, Integer page, Integer pageSize) {
+            Instant validFrom, Instant validTo, Integer page, Integer pageSize) {
         Geometry jtsGeometry = parseGeometry(geometry, unlocode);
 
         return secomGetService.get(mrn(), dataReference, dataProductType, productVersion, geometry, unlocode, jtsGeometry, validFrom, validTo, page, pageSize);
@@ -154,8 +158,8 @@ public class SecomGetController extends AbstractSecomController implements GetSe
     public GetSummaryResponseObject getSummary(@QueryParam("containerType") ContainerTypeEnum containerType,
             @QueryParam("dataProductType") SECOM_DataProductType dataProductType, @QueryParam("productVersion") String productVersion,
             @QueryParam("geometry") String geometry, @QueryParam("unlocode") String unlocode,
-            @QueryParam("validFrom") @Parameter(example = "20200101T123000", schema = @Schema(implementation = String.class, pattern = "(\\d{8})T(\\d{6})")) Instant validFrom,
-            @QueryParam("validTo") @Parameter(example = "20200101T123000", schema = @Schema(implementation = String.class, pattern = "(\\d{8})T(\\d{6})")) Instant validTo,
+            @QueryParam("validFrom") @Parameter(example = SECOM_DATE_TIME_EXAMPLE, schema = @Schema(implementation = String.class, pattern = SECOM_DATE_TIME_PATTERN)) Instant validFrom,
+            @QueryParam("validTo") @Parameter(example = SECOM_DATE_TIME_EXAMPLE, schema = @Schema(implementation = String.class, pattern = SECOM_DATE_TIME_PATTERN)) Instant validTo,
             @QueryParam("page") Integer page, @QueryParam("pageSize") Integer pageSize) {
 
         // Validate/resolve the container type the same way get() does, so the summary reports a
@@ -171,7 +175,7 @@ public class SecomGetController extends AbstractSecomController implements GetSe
         dataProductType = defaultDataProductType(dataProductType);
 
         // Find all relevant data
-        Page<? extends DataSet> data = get0(null, dataProductType, productVersion, geometry, unlocode, toLocal(validFrom), toLocal(validTo), page, pageSize);
+        Page<? extends DataSet> data = get0(null, dataProductType, productVersion, geometry, unlocode, validFrom, validTo, page, pageSize);
 
         // Create the summary object
         List<SummaryObject> summaryObjects = new ArrayList<>();

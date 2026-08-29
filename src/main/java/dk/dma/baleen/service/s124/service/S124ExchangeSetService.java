@@ -24,6 +24,7 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 
 import org.grad.eNav.s100.utils.S100ExchangeSetUtils;
@@ -107,14 +108,65 @@ public class S124ExchangeSetService {
             try {
                 dataset = S124Utils.unmarshallS124(gml);
             } catch (JAXBException e) {
-                throw new IllegalStateException("Could not parse S-124 dataset " + ds.uuid() + " for exchange set", e);
+                LOGGER.warn("Leaving dataset {} out of the exchange set, it could not be parsed", ds.uuid(), e);
+                continue;
             }
             nameDatasetFile(dataset, ds);
             parsed.add(dataset);
         }
+        if (parsed.isEmpty()) {
+            throw new IllegalStateException("None of the " + datasets.size() + " datasets could be parsed, so there is no exchange set to build");
+        }
 
+        return packageWhatCanBePackaged(parsed, this::build);
+    }
+
+    /**
+     * {@return the datasets packaged as one exchange set, leaving out any the packager will not accept}
+     * <p>
+     * The factory validates the datasets as a batch and stops at the first one it objects to, so a single bad warning
+     * used to cost every other warning its delivery. Which ones it objects to is only discoverable by offering them
+     * one at a time - the objection can come from the dataset, from the marshalled XML or from the discovery metadata
+     * the catalogue derives from it, and only the factory knows about all three - which is far too expensive to do
+     * routinely. So the batch is tried first and paid for only once it has failed.
+     * <p>
+     * Leaving a warning out is a poor outcome and is logged at error, but it is the better of the two on offer: the
+     * alternative is that every warning in the batch goes undelivered.
+     *
+     * @param datasets
+     *            the datasets to package
+     * @param packager
+     *            builds an exchange set of the datasets it is given, throwing if it will not accept one of them
+     * @throws IllegalStateException
+     *             if not one of the datasets can be packaged
+     */
+    static byte[] packageWhatCanBePackaged(List<Dataset> datasets, Function<List<Dataset>, byte[]> packager) {
+        try {
+            return packager.apply(datasets);
+        } catch (RuntimeException e) {
+            LOGGER.warn("The exchange set of {} datasets could not be built, retrying with the ones that can be packaged", datasets.size(), e);
+            List<Dataset> packageable = new ArrayList<>();
+            for (Dataset dataset : datasets) {
+                try {
+                    packager.apply(List.of(dataset));
+                    packageable.add(dataset);
+                } catch (RuntimeException rejected) {
+                    LOGGER.error("Leaving dataset {} out of the exchange set: {}", dataset.getId(), rejected.getMessage());
+                }
+            }
+            if (packageable.isEmpty()) {
+                throw new IllegalStateException("None of the " + datasets.size() + " datasets could be packaged into an exchange set", e);
+            }
+            LOGGER.error("Serving an exchange set of {} datasets, {} could not be packaged and were left out", packageable.size(),
+                    datasets.size() - packageable.size());
+            return packager.apply(packageable);
+        }
+    }
+
+    /** {@return the datasets packaged and signed as one exchange set} */
+    private byte[] build(List<Dataset> datasets) {
         return S124ExchangeSetFactory.builder()
-                .datasets(parsed)
+                .datasets(datasets)
                 .organization(organization)
                 .producerCode(producerCode)
                 .schemeAdministrator(schemeAdministrator)
