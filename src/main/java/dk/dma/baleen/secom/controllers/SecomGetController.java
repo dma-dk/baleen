@@ -66,6 +66,24 @@ public class SecomGetController extends AbstractSecomController implements GetSe
     /** The extended ISO 8601 form the SECOM v2 InstantConverter parses, with the offset optional. */
     private static final String SECOM_DATE_TIME_PATTERN = "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(Z|[+-]\\d{2}:\\d{2})?";
 
+    /**
+     * A container type as SECOM v2 writes one on the wire: the integer code, not the name. SECOM models
+     * ContainerType as a numerically coded enumeration, and {@code ContainerTypeConverterProvider} parses the
+     * parameter with {@code Integer.parseInt}, so {@code containerType=S100_DataSet} is a 400. Generated docs
+     * would otherwise offer the Java constant names, which is the one thing that cannot be sent.
+     */
+    private static final String SECOM_CONTAINER_TYPE_EXAMPLE = "0";
+
+    /** The integer codes SECOM defines for ContainerType. NONE is rejected by {@link #get}. */
+    private static final String SECOM_CONTAINER_TYPE_DESCRIPTION = "0 = S100_DataSet, 1 = S100_ExchangeSet, 2 = NONE (rejected)";
+
+    /**
+     * A data product type as SECOM v2 writes one: the IHO product identifier, hyphen included. Unlike
+     * ContainerType this enumeration is string coded, so the two neighbouring parameters genuinely take
+     * different forms - {@code containerType=1&dataProductType=S-124}, never {@code S124} and never {@code 8}.
+     */
+    private static final String SECOM_DATA_PRODUCT_TYPE_EXAMPLE = "S-124";
+
     /** A SECOM service that handle all get requests. */
     private SecomGetService secomGetService;
 
@@ -79,8 +97,8 @@ public class SecomGetController extends AbstractSecomController implements GetSe
     // parameter constraint configuration (HV000151). Let constraints be inherited from
     // GetServiceInterface#get instead of redeclaring @Pattern/@Min here.
     @Override
-    public GetResponseObject get(@QueryParam("dataReference") UUID dataReference, @QueryParam("containerType") ContainerTypeEnum containerType,
-            @QueryParam("dataProductType") SECOM_DataProductType dataProductType, @QueryParam("productVersion") String productVersion,
+    public GetResponseObject get(@QueryParam("dataReference") UUID dataReference, @QueryParam("containerType") @Parameter(example = SECOM_CONTAINER_TYPE_EXAMPLE, schema = @Schema(implementation = Integer.class, description = SECOM_CONTAINER_TYPE_DESCRIPTION)) ContainerTypeEnum containerType,
+            @QueryParam("dataProductType") @Parameter(example = SECOM_DATA_PRODUCT_TYPE_EXAMPLE, schema = @Schema(implementation = String.class)) SECOM_DataProductType dataProductType, @QueryParam("productVersion") String productVersion,
             @QueryParam("geometry") String geometry, @QueryParam("unlocode") String unlocode,
             @QueryParam("validFrom") @Parameter(example = SECOM_DATE_TIME_EXAMPLE, schema = @Schema(implementation = String.class, pattern = SECOM_DATE_TIME_PATTERN)) Instant validFrom,
             @QueryParam("validTo") @Parameter(example = SECOM_DATE_TIME_EXAMPLE, schema = @Schema(implementation = String.class, pattern = SECOM_DATE_TIME_PATTERN)) Instant validTo,
@@ -155,8 +173,8 @@ public class SecomGetController extends AbstractSecomController implements GetSe
     // NOTE: Jakarta Bean Validation forbids an implementing method from adding parameter
     // constraints that the interface method does not declare (HV000151). GetSummaryServiceInterface
     // declares no parameter constraints, so getSummary must not add @Pattern/@Min here.
-    public GetSummaryResponseObject getSummary(@QueryParam("containerType") ContainerTypeEnum containerType,
-            @QueryParam("dataProductType") SECOM_DataProductType dataProductType, @QueryParam("productVersion") String productVersion,
+    public GetSummaryResponseObject getSummary(@QueryParam("containerType") @Parameter(example = SECOM_CONTAINER_TYPE_EXAMPLE, schema = @Schema(implementation = Integer.class, description = SECOM_CONTAINER_TYPE_DESCRIPTION)) ContainerTypeEnum containerType,
+            @QueryParam("dataProductType") @Parameter(example = SECOM_DATA_PRODUCT_TYPE_EXAMPLE, schema = @Schema(implementation = String.class)) SECOM_DataProductType dataProductType, @QueryParam("productVersion") String productVersion,
             @QueryParam("geometry") String geometry, @QueryParam("unlocode") String unlocode,
             @QueryParam("validFrom") @Parameter(example = SECOM_DATE_TIME_EXAMPLE, schema = @Schema(implementation = String.class, pattern = SECOM_DATE_TIME_PATTERN)) Instant validFrom,
             @QueryParam("validTo") @Parameter(example = SECOM_DATE_TIME_EXAMPLE, schema = @Schema(implementation = String.class, pattern = SECOM_DATE_TIME_PATTERN)) Instant validTo,
