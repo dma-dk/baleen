@@ -26,8 +26,14 @@ import java.util.UUID;
 import org.grad.secomv2.core.exceptions.SecomValidationException;
 import org.grad.secomv2.core.interfaces.GetServiceInterface;
 import org.grad.secomv2.core.interfaces.GetSummaryServiceInterface;
+import org.grad.secomv2.core.interfaces.PostGetServiceInterface;
+import org.grad.secomv2.core.interfaces.PostGetSummaryServiceInterface;
 import org.grad.secomv2.core.models.DataResponseObject;
+import org.grad.secomv2.core.models.EnvelopeGetFilterObject;
+import org.grad.secomv2.core.models.EnvelopeGetSummaryFilterObject;
+import org.grad.secomv2.core.models.GetFilterObject;
 import org.grad.secomv2.core.models.GetResponseObject;
+import org.grad.secomv2.core.models.GetSummaryFilterObject;
 import org.grad.secomv2.core.models.GetSummaryResponseObject;
 import org.grad.secomv2.core.models.PaginationObject;
 import org.grad.secomv2.core.models.ExchangeMetadata;
@@ -44,17 +50,26 @@ import dk.dma.baleen.secom.service.SecomGetService;
 import dk.dma.baleen.service.spi.DataSet;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.Valid;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.QueryParam;
 
 /**
- * We implement both {@link GetServiceInterface}, {@link GetSummaryServiceInterface} and {@link GetByLinkSecomInterface}
- * here.
+ * The four SECOM interfaces that answer a query for S-124 datasets: {@link GetServiceInterface} and
+ * {@link GetSummaryServiceInterface}, which take the query as URL parameters, and
+ * {@link PostGetServiceInterface} and {@link PostGetSummaryServiceInterface}, which take the same query in a
+ * signed request body.
+ * <p>
+ * SECOM's capability document has one {@code get} flag covering both forms, so a client that reads
+ * {@code get: true} is entitled to either, and the body form is the only one that can carry a geometry too
+ * large for a URL. The POST methods therefore unpack the envelope and call the URL-parameter method rather
+ * than repeating it, so the two forms cannot answer the same query differently.
  */
 @Component
 @Path("/")
 @Validated
-public class SecomGetController extends AbstractSecomController implements GetServiceInterface , GetSummaryServiceInterface {
+public class SecomGetController extends AbstractSecomController
+        implements GetServiceInterface, GetSummaryServiceInterface, PostGetServiceInterface, PostGetSummaryServiceInterface {
 
     /**
      * A time as SECOM v2 writes one. The documented example used to be the SECOM v1 basic form, {@code
@@ -149,6 +164,45 @@ public class SecomGetController extends AbstractSecomController implements GetSe
         // it asked for arrived and leave the remaining pages unfetched.
         response.setPagination(new PaginationObject(totalItems(data), Optional.ofNullable(pageSize).orElse(Integer.MAX_VALUE)));
         return response;
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * The body form of {@link #get}. SECOM puts the same ten filters in a signed envelope instead of the URL,
+     * which is what a client has to use once its geometry outgrows a query string. The envelope is unpacked and
+     * handed to the URL-parameter method, so both forms answer a given query with the same datasets, the same
+     * paging and the same exchange sets.
+     */
+    @Override
+    public GetResponseObject get(@Valid GetFilterObject getFilterObject) {
+        EnvelopeGetFilterObject envelope = check(requireAttribute("envelope", envelopeOf(getFilterObject)));
+        return get(envelope.getDataReference(), envelope.getContainerType(), envelope.getDataProductType(),
+                envelope.getProductVersion(), envelope.getGeometry(), envelope.getUnlocode(), envelope.getValidFrom(),
+                envelope.getValidTo(), envelope.getPage(), envelope.getPageSize());
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * The body form of {@link #getSummary}, unpacked and delegated the same way {@link #get(GetFilterObject)} is.
+     */
+    @Override
+    public GetSummaryResponseObject getSummary(@Valid GetSummaryFilterObject getSummaryFilterObject) {
+        EnvelopeGetSummaryFilterObject envelope = check(requireAttribute("envelope", envelopeOf(getSummaryFilterObject)));
+        return getSummary(envelope.getContainerType(), envelope.getDataProductType(), envelope.getProductVersion(),
+                envelope.getGeometry(), envelope.getUnlocode(), envelope.getValidFrom(), envelope.getValidTo(),
+                envelope.getPage(), envelope.getPageSize());
+    }
+
+    /** {@return the envelope of the request, or null if the request itself was missing} */
+    private static EnvelopeGetFilterObject envelopeOf(GetFilterObject request) {
+        return request == null ? null : request.getEnvelope();
+    }
+
+    /** {@return the envelope of the request, or null if the request itself was missing} */
+    private static EnvelopeGetSummaryFilterObject envelopeOf(GetSummaryFilterObject request) {
+        return request == null ? null : request.getEnvelope();
     }
 
     /** {@return the number of datasets matching the query, across all pages} */
