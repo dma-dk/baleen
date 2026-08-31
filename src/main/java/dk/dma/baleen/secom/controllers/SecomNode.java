@@ -18,6 +18,17 @@ package dk.dma.baleen.secom.controllers;
 
 import dk.dma.baleen.secom.spi.AuthenticatedMcpNode;
 
-public record SecomNode(String mrn) implements AuthenticatedMcpNode {
+/**
+ * A remote node, and whether anything actually established that it is who it says it is.
+ *
+ * @param mrn the MRN of the node, or null when the caller is anonymous
+ * @param verified whether the MRN was verified against a trusted client certificate. Always false as things
+ *            stand: {@link MRNExtractorRequestFilter} reads the MRN out of an unvalidated header.
+ */
+public record SecomNode(String mrn, boolean verified) implements AuthenticatedMcpNode {
 
+    /** Creates a node whose identity nothing has verified. */
+    public SecomNode(String mrn) {
+        this(mrn, false);
+    }
 }

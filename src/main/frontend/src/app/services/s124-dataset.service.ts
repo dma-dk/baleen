@@ -54,8 +54,12 @@ export class S124DatasetService {
     return this.http.get<S124DatasetDetail>(`${this.apiUrl}/${id}/details`);
   }
 
-  getDatasetCount(): Observable<number> {
-    return this.http.get<number>(`${this.apiUrl}/count`);
+  /**
+   * The number of datasets SECOM is serving, which comes from the live Niord poll and not from the stored datasets
+   * this service otherwise lists - the two are not kept in sync.
+   */
+  getServedDatasetCount(): Observable<number> {
+    return this.http.get<number>(`${this.apiUrl}/count/served`);
   }
 
   getNiordStatus(): Observable<{ configured: boolean }> {

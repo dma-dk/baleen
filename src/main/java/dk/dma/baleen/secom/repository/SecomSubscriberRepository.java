@@ -35,16 +35,32 @@ public interface SecomSubscriberRepository extends JpaRepository<SecomSubscriber
     // This will join with secom_node table through the node relationship
     Optional<SecomSubscriberEntity> findByNode_Mrn(String mrn);
 
-    // Find active subscribers matching the criteria
-    @Query("SELECT s FROM SecomSubscriberEntity s " + ""
-            /*         "WHERE s.dataProductType = :dataProductType " +
-           "AND s.productVersion = :productVersion " +
-           "AND s.subscriptionStart <= :now " +
-           "AND s.subscriptionEnd >= :now " +
-        "AND s.isActive = true " +
-           "AND (:dataReference IS NULL OR (s.dataReference IS NOT NULL AND s.dataReference = :dataReference))" // +
-  /*         "AND (:geometry IS NULL OR ST_Intersects(s.geometry, :geometry) = true)" */
-)
+    /**
+     * {@return the subscriptions a publication with the given characteristics has to be delivered to}
+     * <p>
+     * A subscription only constrains the dimensions it actually filled in. Every filter column on
+     * {@link SecomSubscriberEntity} is nullable, so a null column means "no restriction on this dimension" and must
+     * still match - a bare equality would compare against null, evaluate to unknown and deliver nothing at all. The
+     * subscription window is open ended at whichever end was left null, the same way the S-124 dataset query treats
+     * a dataset with no validFrom or validTo. The publication side is never null at the call site, so it is compared
+     * strictly: a subscription that asked for one specific data reference must not be handed an unrelated dataset.
+     * <p>
+     * There is no active flag to test - neither the entity nor the {@code secom_subscriber} table has one, a
+     * subscription is deleted on unsubscribe rather than deactivated, so the surviving rows are the active ones.
+     * <p>
+     * TODO {@code geometry} is accepted but not filtered on. No query here runs a spatial function through JPQL and
+     * none is proven against both H2GIS and PostGIS with agreeing SRIDs, and the subscribe path discards the
+     * requested area anyway, so the clause stays out until a subscription can store a geometry and a test covers it.
+     * It would read {@code AND (:geometry IS NULL OR s.geometry IS NULL OR st_intersects(s.geometry, :geometry) = TRUE)}.
+     */
+    @Query("""
+            SELECT s FROM SecomSubscriberEntity s
+            WHERE (s.dataProductType IS NULL OR s.dataProductType = :dataProductType)
+            AND (s.productVersion IS NULL OR s.productVersion = :productVersion)
+            AND (s.dataReference IS NULL OR s.dataReference = :dataReference)
+            AND (s.subscriptionStart IS NULL OR s.subscriptionStart <= :now)
+            AND (s.subscriptionEnd IS NULL OR s.subscriptionEnd >= :now)
+            """)
     List<SecomSubscriberEntity> findActiveSubscribers(
             @Param("dataProductType") SECOM_DataProductType dataProductType,
             @Param("productVersion") String productVersion,
