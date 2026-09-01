@@ -17,10 +17,15 @@ package dk.dma.baleen.secom.security;
 
 import static java.util.Objects.requireNonNull;
 
+import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.Signature;
 import java.security.cert.X509Certificate;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.grad.secomv2.core.base.DigitalSignatureCertificate;
 import org.grad.secomv2.core.base.SecomSignatureProvider;
@@ -69,19 +74,24 @@ public class BaleenSignatureProvider implements SecomSignatureProvider {
     /**
      * {@inheritDoc}
      *
-     * Verifies with the algorithm the sender said it signed with, rather than the one we sign with.
+     * Verifies with the declared algorithm and, failing that, with the other 384-bit ECDSA algorithm.
      * <p>
-     * {@code SecomSignatureFilter} reads {@code digitalSignatureAlgorithm} off the envelope and passes it here, but
-     * secom-v2 0.1.0 makes this a default method that drops it and calls the overload without an algorithm - so a
-     * provider that only implements that overload silently verifies everything with its own. Ours is
-     * {@link DigitalSignatureAlgorithmEnum#SHA3_384_WITH_ECDSA}, while S-100 Part 15 mandates ECDSA-384-SHA2, which
-     * is a different hash family and fails to verify a perfectly good signature. That is what
-     * {@code urn:mrn:mcp:device:mcc:amsa:s124-secom-client:prod} runs into on {@code /v2/object/search} once its
-     * certificate is accepted.
+     * The {@code algorithm} handed to us is not necessarily the sender's: only envelopes that carry exchange
+     * metadata can declare one ({@code EnvelopeSignatureBearer.getEnvelopeSignatureAlgorithm}), and the filter
+     * envelopes - {@code EnvelopeGetFilterObject} on {@code /v2/object/search} among them - have no such field, so
+     * for those {@code SecomSignatureFilter} always passes our own default. SECOM v2 CD3 deprecated the field that
+     * used to carry it ({@code envelopeSignatureReference}), so the sender has no way to tell us. S-100 Part 15
+     * mandates ECDSA-384-SHA2 while the GRAD reference stack signs SHA3-384, so both are in circulation and the
+     * only interoperable verification is to accept either. The signature must still verify against the presented
+     * certificate over the same bytes; which of two strong hashes it used grants nothing.
      * <p>
-     * A sender that declares nothing still gets our own algorithm, which is the previous behaviour. What we
-     * <em>produce</em> is unchanged - {@link #getSignatureAlgorithm()} and {@link #generateSignature} still sign
-     * with SHA3-384, so nothing about our outgoing messages moves.
+     * When nothing verifies, this logs the exact CSV string the signature was checked against - the bytes we
+     * computed from the sender's envelope - plus any algorithm/CSV-variant combination that <em>would</em> have
+     * verified, so a failing peer can be diagnosed from the log alone. The variants are log-only; they never make
+     * a signature acceptable.
+     * <p>
+     * What we <em>produce</em> is unchanged - {@link #getSignatureAlgorithm()} and {@link #generateSignature} still
+     * sign with SHA3-384, so nothing about our outgoing messages moves.
      */
     @Override
     public boolean validateSignature(String[] signatureCertificates, DigitalSignatureAlgorithmEnum algorithm, byte[] signature,
@@ -90,21 +100,98 @@ public class BaleenSignatureProvider implements SecomSignatureProvider {
             return false;
         }
         DigitalSignatureAlgorithmEnum declared = Optional.ofNullable(algorithm).orElseGet(this::getSignatureAlgorithm);
+
         // Get the X.509 certificate from the request (first cert in chain is the signer)
+        X509Certificate cert;
         try {
-            X509Certificate cert = SecomPemUtils.getCertFromPem(signatureCertificates[0]);
-            Signature verification = Signature.getInstance(declared.getValue());
-            verification.initVerify(cert);
-            verification.update(content);
-            boolean valid = verification.verify(signature);
-            if (!valid) {
-                LOGGER.warn("A {} signature from {} did not verify", declared.getValue(), cert.getSubjectX500Principal());
-            }
-            return valid;
+            cert = SecomPemUtils.getCertFromPem(signatureCertificates[0]);
         } catch (GeneralSecurityException ex) {
-            LOGGER.error("Failed to validate an incoming message signed with {}", declared.getValue(), ex);
+            LOGGER.error("Failed to read the certificate of an incoming message signed with {}", declared.getValue(), ex);
             throw new SecurityException(ex);
         }
+
+        Set<DigitalSignatureAlgorithmEnum> accepted = new LinkedHashSet<>();
+        accepted.add(declared);
+        accepted.add(DigitalSignatureAlgorithmEnum.SHA2_384_WITH_ECDSA);
+        accepted.add(DigitalSignatureAlgorithmEnum.SHA3_384_WITH_ECDSA);
+
+        GeneralSecurityException firstFailure = null;
+        boolean anyAttemptCompleted = false;
+        for (DigitalSignatureAlgorithmEnum candidate : accepted) {
+            try {
+                if (verifies(cert, candidate.getValue(), signature, content)) {
+                    if (candidate != declared) {
+                        LOGGER.info("A signature from {} verified with {} rather than the {} the filter assumed",
+                                cert.getSubjectX500Principal(), candidate.getValue(), declared.getValue());
+                    }
+                    return true;
+                }
+                anyAttemptCompleted = true;
+            } catch (GeneralSecurityException ex) {
+                firstFailure = firstFailure == null ? ex : firstFailure;
+            }
+        }
+        if (!anyAttemptCompleted && firstFailure != null) {
+            LOGGER.error("Failed to validate an incoming message signed with {}", declared.getValue(), firstFailure);
+            throw new SecurityException(firstFailure);
+        }
+
+        logVerificationFailure(cert, signature, content, accepted);
+        return false;
+    }
+
+    /**
+     * Logs everything needed to diagnose a signature that did not verify: the exact CSV we computed - which is the
+     * half of the comparison we own; the other half is whatever the sender actually signed - and any algorithm/CSV
+     * rendering under which the signature would have verified. The renderings cover the Java-specific choices in
+     * the library's {@code CsvStringGenerator} that another implementation would plausibly make differently:
+     * {@code Arrays.toString} putting {@code [...]} around the certificate array, and the CD3-deprecated
+     * {@code envelopeSignatureReference} contributing a trailing empty field.
+     */
+    private void logVerificationFailure(X509Certificate cert, byte[] signature, byte[] content,
+            Set<DigitalSignatureAlgorithmEnum> accepted) {
+        String csv = new String(content, StandardCharsets.UTF_8);
+        LOGGER.warn("A signature from {} did not verify with any of {}. The CSV this server computed and checked it against was\n>>>{}<<<",
+                cert.getSubjectX500Principal(), accepted.stream().map(DigitalSignatureAlgorithmEnum::getValue).toList(), csv);
+
+        Map<String, String> variants = new LinkedHashMap<>();
+        variants.put("the CSV as computed", csv);
+        if (csv.endsWith(".")) {
+            variants.put("the CSV without the deprecated trailing envelopeSignatureReference field", csv.substring(0, csv.length() - 1));
+        }
+        if (csv.contains("[")) {
+            String stripped = csv.replace("[", "").replace("]", "");
+            variants.put("the CSV without brackets around the certificate array", stripped);
+            if (stripped.endsWith(".")) {
+                variants.put("the CSV without brackets and without the trailing field",
+                        stripped.substring(0, stripped.length() - 1));
+            }
+        }
+        for (Map.Entry<String, String> variant : variants.entrySet()) {
+            for (DigitalSignatureAlgorithmEnum candidate : DigitalSignatureAlgorithmEnum.values()) {
+                // The DSA and CVC-ECDSA algorithm names are not resolvable in a standard JCA, and no MCP peer uses them
+                if (candidate == DigitalSignatureAlgorithmEnum.DSA || candidate == DigitalSignatureAlgorithmEnum.CVC_ECDSA) {
+                    continue;
+                }
+                try {
+                    if (verifies(cert, candidate.getValue(), signature, variant.getValue().getBytes(StandardCharsets.UTF_8))) {
+                        LOGGER.warn("DIAGNOSTIC ONLY: the failed signature from {} WOULD verify with {} over {}",
+                                cert.getSubjectX500Principal(), candidate.getValue(), variant.getKey());
+                    }
+                } catch (GeneralSecurityException ignored) {
+                    // a candidate that cannot even be attempted proves nothing
+                }
+            }
+        }
+    }
+
+    /** {@return whether the signature verifies against the certificate over the given bytes with the given JCA algorithm} */
+    private static boolean verifies(X509Certificate cert, String jcaAlgorithm, byte[] signature, byte[] content)
+            throws GeneralSecurityException {
+        Signature verification = Signature.getInstance(jcaAlgorithm);
+        verification.initVerify(cert);
+        verification.update(content);
+        return verification.verify(signature);
     }
 
     /**

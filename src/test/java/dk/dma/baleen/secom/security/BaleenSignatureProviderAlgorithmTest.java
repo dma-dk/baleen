@@ -39,13 +39,14 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
- * Pins that an incoming signature is verified with the algorithm its sender declared.
+ * Pins that an incoming signature is accepted under either 384-bit ECDSA algorithm, whatever the filter claims
+ * was declared.
  * <p>
- * {@code SecomSignatureFilter} reads {@code digitalSignatureAlgorithm} off the envelope and hands it to the
- * provider, but secom-v2 0.1.0 routes that through a default method which discards it. A provider implementing only
- * the algorithm-less overload therefore verifies everything with its own algorithm, and Baleen's is
- * SHA3-384-with-ECDSA while S-100 Part 15 mandates ECDSA-384-SHA2. SHA-3 and SHA-2 are different hash families, so
- * a correct signature simply fails - which is what
+ * The algorithm the filter passes cannot be trusted to be the sender's: only exchange-metadata-bearing envelopes
+ * can declare one, and the filter envelopes - {@code EnvelopeGetFilterObject} on {@code /v2/object/search} among
+ * them - have no field for it, so {@code SecomSignatureFilter} silently substitutes our own default. S-100
+ * Part 15 mandates ECDSA-384-SHA2 while the GRAD reference stack signs SHA3-384; verifying with exactly one of
+ * them rejects a correct signature from half the ecosystem - which is what
  * {@code urn:mrn:mcp:device:mcc:amsa:s124-secom-client:prod} hit on {@code /v2/object/search}.
  */
 class BaleenSignatureProviderAlgorithmTest {
@@ -79,9 +80,14 @@ class BaleenSignatureProviderAlgorithmTest {
 
     /** {@return a signature over {@link #CONTENT} produced with the given JCA algorithm} */
     private static byte[] sign(String jcaAlgorithm) throws Exception {
+        return sign(jcaAlgorithm, CONTENT);
+    }
+
+    /** {@return a signature over the given bytes produced with the given JCA algorithm} */
+    private static byte[] sign(String jcaAlgorithm, byte[] content) throws Exception {
         Signature signature = Signature.getInstance(jcaAlgorithm);
         signature.initSign(keyPair.getPrivate());
-        signature.update(CONTENT);
+        signature.update(content);
         return signature.sign();
     }
 
@@ -95,13 +101,31 @@ class BaleenSignatureProviderAlgorithmTest {
     }
 
     @Test
-    void theSameSignatureFailsUnderBaleensOwnAlgorithm() throws Exception {
-        // The regression this guards: before the declared algorithm was honoured, every incoming signature was
-        // verified as SHA3-384, so this good SHA-2 signature was rejected.
+    void aSha2SignatureVerifiesEvenUnderTheFiltersSha3Fallback() throws Exception {
+        // The regression this guards: the filter substitutes our own SHA3-384 for envelopes that cannot declare
+        // an algorithm, and verifying with only that rejected AMSA's good SHA-2 signatures on /v2/object/search.
         byte[] signature = sign("SHA384withECDSA");
 
         assertThat(provider.validateSignature(certificatePem, DigitalSignatureAlgorithmEnum.SHA3_384_WITH_ECDSA, signature,
+                CONTENT)).isTrue();
+    }
+
+    @Test
+    void algorithmsOutsideThe384FamilyAreNotBlindlyTried() throws Exception {
+        // The accepted set is declared + the two 384-bit algorithms, nothing wider.
+        byte[] signature = sign("SHA256withECDSA");
+
+        assertThat(provider.validateSignature(certificatePem, DigitalSignatureAlgorithmEnum.SHA3_384_WITH_ECDSA, signature,
                 CONTENT)).isFalse();
+    }
+
+    @Test
+    void aDeclared256AlgorithmIsStillHonoured() throws Exception {
+        // A sender that genuinely declares something outside the 384 family still verifies under its declaration.
+        byte[] signature = sign("SHA256withECDSA");
+
+        assertThat(provider.validateSignature(certificatePem, DigitalSignatureAlgorithmEnum.SHA2_256_WITH_ECDSA, signature,
+                CONTENT)).isTrue();
     }
 
     @Test
@@ -127,6 +151,17 @@ class BaleenSignatureProviderAlgorithmTest {
 
         assertThat(provider.validateSignature(certificatePem, DigitalSignatureAlgorithmEnum.SHA2_384_WITH_ECDSA, signature,
                 "dataReference.0.S-124.2.0.1".getBytes())).isFalse();
+    }
+
+    @Test
+    void aSignatureOverACsvRenderingVariantIsDiagnosticOnlyAndStillRejected() throws Exception {
+        // The failure log reports when a signature would verify over an alternative CSV rendering - here the
+        // certificate array without Arrays.toString brackets - but reporting must never become accepting.
+        byte[] contentWithBrackets = "[MIICert].AB12CD.1756713600.".getBytes();
+        byte[] signature = sign("SHA384withECDSA", "MIICert.AB12CD.1756713600.".getBytes());
+
+        assertThat(provider.validateSignature(certificatePem, DigitalSignatureAlgorithmEnum.SHA2_384_WITH_ECDSA, signature,
+                contentWithBrackets)).isFalse();
     }
 
     @Test
