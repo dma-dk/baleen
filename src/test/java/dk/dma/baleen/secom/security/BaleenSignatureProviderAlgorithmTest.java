@@ -154,6 +154,18 @@ class BaleenSignatureProviderAlgorithmTest {
     }
 
     @Test
+    void aSignatureOmittingTheDeprecatedTrailingFieldVerifies() throws Exception {
+        // The AMSA case, verified against live traffic on 2026-09-01: SHA-2-384 over a CSV whose envelope model
+        // post-dates the CD3 deprecation of envelopeSignatureReference, so it lacks the trailing empty column the
+        // GRAD library still renders. The field is @JsonIgnore and thus always empty on incoming requests.
+        byte[] contentAsGradRendersIt = ".1.S-124......1.50.[MIICert].AB12CD.1756713600.".getBytes();
+        byte[] signature = sign("SHA384withECDSA", ".1.S-124......1.50.[MIICert].AB12CD.1756713600".getBytes());
+
+        assertThat(provider.validateSignature(certificatePem, DigitalSignatureAlgorithmEnum.SHA3_384_WITH_ECDSA, signature,
+                contentAsGradRendersIt)).isTrue();
+    }
+
+    @Test
     void aSignatureOverACsvRenderingVariantIsDiagnosticOnlyAndStillRejected() throws Exception {
         // The failure log reports when a signature would verify over an alternative CSV rendering - here the
         // certificate array without Arrays.toString brackets - but reporting must never become accepting.

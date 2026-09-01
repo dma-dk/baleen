@@ -21,6 +21,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.Signature;
 import java.security.cert.X509Certificate;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -85,13 +86,21 @@ public class BaleenSignatureProvider implements SecomSignatureProvider {
      * only interoperable verification is to accept either. The signature must still verify against the presented
      * certificate over the same bytes; which of two strong hashes it used grants nothing.
      * <p>
+     * The signed bytes are accepted in two renderings: exactly as the library computed them, and without the
+     * CD3-deprecated {@code envelopeSignatureReference} trailing field. The library's {@code CsvStringGenerator}
+     * still appends that field to every envelope CSV, but it is {@code @JsonIgnore} so an incoming request can
+     * never populate it - it is always a trailing empty column that exists only in the GRAD rendering. A sender
+     * whose envelope model post-dates the deprecation signs the same values without it, which is exactly what
+     * AMSA's {@code s124-secom-client} does. Dropping a single trailing separator from otherwise-identical bytes
+     * authenticates the same envelope fields, at the cost of one byte of malleability on an always-empty column.
+     * <p>
      * When nothing verifies, this logs the exact CSV string the signature was checked against - the bytes we
      * computed from the sender's envelope - plus any algorithm/CSV-variant combination that <em>would</em> have
-     * verified, so a failing peer can be diagnosed from the log alone. The variants are log-only; they never make
-     * a signature acceptable.
+     * verified, so a failing peer can be diagnosed from the log alone. Those variants are log-only; they never
+     * make a signature acceptable.
      * <p>
      * What we <em>produce</em> is unchanged - {@link #getSignatureAlgorithm()} and {@link #generateSignature} still
-     * sign with SHA3-384, so nothing about our outgoing messages moves.
+     * sign with SHA3-384 over the library's own rendering, so nothing about our outgoing messages moves.
      */
     @Override
     public boolean validateSignature(String[] signatureCertificates, DigitalSignatureAlgorithmEnum algorithm, byte[] signature,
@@ -115,20 +124,29 @@ public class BaleenSignatureProvider implements SecomSignatureProvider {
         accepted.add(DigitalSignatureAlgorithmEnum.SHA2_384_WITH_ECDSA);
         accepted.add(DigitalSignatureAlgorithmEnum.SHA3_384_WITH_ECDSA);
 
+        Map<String, byte[]> renderings = new LinkedHashMap<>();
+        renderings.put("the CSV as this library renders it", content);
+        if (content.length > 0 && content[content.length - 1] == '.') {
+            renderings.put("the CSV without the deprecated trailing envelopeSignatureReference field",
+                    Arrays.copyOf(content, content.length - 1));
+        }
+
         GeneralSecurityException firstFailure = null;
         boolean anyAttemptCompleted = false;
-        for (DigitalSignatureAlgorithmEnum candidate : accepted) {
-            try {
-                if (verifies(cert, candidate.getValue(), signature, content)) {
-                    if (candidate != declared) {
-                        LOGGER.info("A signature from {} verified with {} rather than the {} the filter assumed",
-                                cert.getSubjectX500Principal(), candidate.getValue(), declared.getValue());
+        for (Map.Entry<String, byte[]> rendering : renderings.entrySet()) {
+            for (DigitalSignatureAlgorithmEnum candidate : accepted) {
+                try {
+                    if (verifies(cert, candidate.getValue(), signature, rendering.getValue())) {
+                        if (candidate != declared || rendering.getValue() != content) {
+                            LOGGER.info("A signature from {} verified with {} over {}, not the {} over the library rendering the filter assumed",
+                                    cert.getSubjectX500Principal(), candidate.getValue(), rendering.getKey(), declared.getValue());
+                        }
+                        return true;
                     }
-                    return true;
+                    anyAttemptCompleted = true;
+                } catch (GeneralSecurityException ex) {
+                    firstFailure = firstFailure == null ? ex : firstFailure;
                 }
-                anyAttemptCompleted = true;
-            } catch (GeneralSecurityException ex) {
-                firstFailure = firstFailure == null ? ex : firstFailure;
             }
         }
         if (!anyAttemptCompleted && firstFailure != null) {
