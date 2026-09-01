@@ -21,6 +21,8 @@ src/main/frontend/node/
 src/main/frontend/.angular/
 src/main/frontend/dist/
 src/main/frontend/*.log
+# Generated at build time by update-build-timestamp.js
+src/main/frontend/src/environments/build-info.ts
 src/main/resources/static/
 src/main/resources/secom/keystore.p12
 testenv.sh

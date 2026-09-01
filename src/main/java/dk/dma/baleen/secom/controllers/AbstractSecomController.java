@@ -38,9 +38,16 @@ abstract class AbstractSecomController {
     @Autowired
     HttpServletRequest httpServletRequest;
 
+    /**
+     * {@return the caller of the current request}
+     * <p>
+     * The node is only as trustworthy as {@link MRNExtractorRequestFilter} made it, which today means not at
+     * all - {@link SecomNode#verified()} is false and the MRN may be null for an anonymous caller.
+     */
     SecomNode mrn() {
-        String mrn = (String) httpServletRequest.getAttribute("X-MRN");
-        return new SecomNode(mrn);
+        String mrn = (String) httpServletRequest.getAttribute(MRNExtractorRequestFilter.MRN_ATTRIBUTE);
+        boolean verified = Boolean.TRUE.equals(httpServletRequest.getAttribute(MRNExtractorRequestFilter.MRN_VERIFIED_ATTRIBUTE));
+        return new SecomNode(mrn, verified);
     }
 
     static <T extends AbstractEnvelope> T check(@Nullable T envelope) {

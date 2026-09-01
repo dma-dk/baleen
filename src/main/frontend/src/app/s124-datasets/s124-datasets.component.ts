@@ -50,8 +50,12 @@ import { ConfirmationService, MessageService } from 'primeng/api';
             </p-button>
           </div>
 
-          <div class="text-muted-color text-sm">
-            Total datasets: {{ totalElements }}
+          <div class="text-muted-color text-sm text-right space-y-1">
+            <div>Stored datasets (listed below): {{ totalElements }}</div>
+            <div>Served over SECOM (live from Niord): {{ servedCount !== null ? servedCount : 'unknown' }}</div>
+            <div *ngIf="servedCount !== null && servedCount !== totalElements" class="text-xs">
+              The two differ: this table is a stored snapshot, SECOM answers from the current Niord poll.
+            </div>
           </div>
         </div>
       </p-card>
@@ -231,6 +235,8 @@ export class S124DatasetsComponent implements OnInit {
   pageSize = 20;
   totalElements = 0;
   totalPages = 0;
+  /** How many datasets SECOM serves, or null while it is unknown - it is not the number of stored datasets. */
+  servedCount: number | null = null;
   niordConfigured = false;
   loading = false;
   error: string | null = null;
@@ -248,6 +254,7 @@ export class S124DatasetsComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadDatasets();
+    this.loadServedCount();
     this.checkNiordStatus();
   }
 
@@ -278,8 +285,25 @@ export class S124DatasetsComponent implements OnInit {
     });
   }
 
+  /**
+   * The stored datasets and the ones SECOM serves come from different sources and can disagree, so both are shown and
+   * both are refreshed.
+   */
+  loadServedCount(): void {
+    this.datasetService.getServedDatasetCount().subscribe({
+      next: (count) => {
+        this.servedCount = count;
+      },
+      error: (err) => {
+        console.error('Error loading the number of datasets served over SECOM:', err);
+        this.servedCount = null;
+      }
+    });
+  }
+
   refreshDatasets(): void {
     this.loadDatasets();
+    this.loadServedCount();
   }
 
   nextPage(): void {
@@ -379,6 +403,7 @@ export class S124DatasetsComponent implements OnInit {
       next: (result) => {
         if (result.success) {
           this.loadDatasets();
+          this.loadServedCount();
           this.messageService.add({
             severity: 'success',
             summary: 'Success',

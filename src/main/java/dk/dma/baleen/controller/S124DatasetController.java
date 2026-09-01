@@ -22,6 +22,7 @@ import dk.dma.baleen.service.s124.NiordApiCaller2;
 import dk.dma.baleen.service.s124.service.S124Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -38,6 +39,15 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * The admin API over the stored S-124 datasets.
+ * <p>
+ * There are two sources of truth for S-124 and nothing keeps them in sync. Every endpoint here except
+ * {@link #getServedDatasetCount()} reads the JPA store, which is only written by an upload or by
+ * {@link #reloadFromNiord()} and is otherwise a frozen snapshot. Everything SECOM serves comes from the live Niord
+ * poll behind {@link S124Service#findAll}, which never touches that store. The split is deliberate for now, so the
+ * numbers reported here say which of the two they came from rather than pretending there is one.
+ */
 @RestController
 @RequestMapping("/api/s124-datasets")
 public class S124DatasetController {
@@ -86,9 +96,26 @@ public class S124DatasetController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * {@return how many datasets the store holds}
+     * <p>
+     * This is the size of the stored snapshot the rest of this controller lists, and it is the same number as the
+     * total of {@link #getAllDatasets}. It is not what SECOM hands out; {@link #getServedDatasetCount()} is.
+     */
     @GetMapping("/count")
     public ResponseEntity<Long> getDatasetCount() {
         return ResponseEntity.ok(repository.count());
+    }
+
+    /**
+     * {@return how many datasets SECOM is serving right now}
+     * <p>
+     * This is the number a SECOM client sees, which is not the number of rows the rest of this controller lists. It
+     * is read from the same poll a SECOM get is answered from, so asking for it costs no more than that get does.
+     */
+    @GetMapping("/count/served")
+    public ResponseEntity<Long> getServedDatasetCount() {
+        return ResponseEntity.ok(s124Service.findAll(null, null, null, null, Pageable.unpaged()).getTotalElements());
     }
     
     @GetMapping("/niord-status")
