@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
+import java.security.MessageDigest;
 import java.security.PrivateKey;
 import java.security.Signature;
 import java.security.cert.Certificate;
@@ -32,7 +33,10 @@ import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Enumeration;
+import java.util.HexFormat;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -61,6 +65,9 @@ public class MCPSecurityService {
 
     /** The subject common name of the MCP trust anchor, used when it is stored under some other alias. */
     private static final String TRUST_STORE_ROOT_COMMON_NAME = "MCP Identity Registry";
+
+    /** The hashes a SECOM peer might have used to fingerprint a CA, in the order they are tried. */
+    private static final List<String> THUMBPRINT_HASHES = List.of("SHA-256", "SHA-384", "SHA-1", "SHA-512");
 
     /** The logger of this class. */
     private static final Logger LOGGER = LoggerFactory.getLogger(MCPSecurityService.class);
@@ -212,6 +219,60 @@ public class MCPSecurityService {
      */
     public List<X509Certificate> trustAnchors() {
         return TRUST_ANCHORS;
+    }
+
+    /**
+     * {@return every thumbprint a caller could legitimately use to name the MCP CA it anchors on, lower case hex}
+     * <p>
+     * SECOM has a peer declare the CA it trusts by thumbprint, and the receiver compares that against its own. The
+     * comparison is a string equality over a hash of a certificate, so it fails whenever the two sides describe the
+     * same certification authority differently - and there are two independent ways to differ.
+     * <p>
+     * The first is <em>which</em> certificate. MCP issues through {@code CN=MCP Identity Registry} under
+     * {@code CN=MCP Root Certificate}, and MCP's own documentation hands relying parties the root, so a caller
+     * naming the root and one naming the intermediate are both correct.
+     * <p>
+     * The second is <em>which hash</em>. {@code SecomConstants.CERTIFICATE_THUMBPRINT_HASH} is hardcoded to SHA-256
+     * and the library's schema documents "SHA-1 or SHA-256", while S-100 Part 15 mandates SHA-384 throughout. The
+     * AMSA client observed on {@code /v2/object/search} sends the SHA-384 of the root, which is defensible and
+     * which a SHA-256 comparison can never match.
+     * <p>
+     * So every MCP anchor is offered under every hash a peer plausibly used. This widens only what is
+     * <em>accepted</em>; what Baleen advertises is untouched, so peers configured against us keep working. It
+     * deliberately does not include the public CAs the same truststore carries for outgoing TLS - accepting
+     * {@code CN=ISRG Root X1} here would let anyone holding a certificate from a public CA claim a trusted root,
+     * and that CA is in no position to vouch for an MRN.
+     */
+    public Set<String> acceptableRootThumbprints() {
+        Set<String> thumbprints = new LinkedHashSet<>();
+        for (X509Certificate anchor : mcpTrustAnchors()) {
+            for (String algorithm : THUMBPRINT_HASHES) {
+                try {
+                    MessageDigest digest = MessageDigest.getInstance(algorithm);
+                    thumbprints.add(HexFormat.of().formatHex(digest.digest(anchor.getEncoded())));
+                } catch (GeneralSecurityException e) {
+                    // A JDK without one of these hashes is not a condition worth failing startup over; the
+                    // remaining ones still let the common cases through.
+                    LOGGER.warn("Could not compute the {} thumbprint of trust anchor {}", algorithm,
+                            anchor.getSubjectX500Principal(), e);
+                }
+            }
+        }
+        return Set.copyOf(thumbprints);
+    }
+
+    /**
+     * {@return the trust anchors that are MCP's own certification authorities}
+     * <p>
+     * {@link #trustAnchors()} also holds the public CAs the same truststore carries for outgoing TLS. Those are not
+     * entitled to vouch for an MRN, so anything deciding whether a SECOM peer is who it says it is wants this
+     * narrower set. Matching the organisation keeps them out without pinning an exact common name, which differs
+     * between the root, the registry and the test PKI.
+     */
+    public List<X509Certificate> mcpTrustAnchors() {
+        return TRUST_ANCHORS.stream()
+                .filter(c -> c.getSubjectX500Principal().getName().contains("O=MCP"))
+                .toList();
     }
 
     public byte[] sign(String algorithm, byte[] payload) throws GeneralSecurityException {
