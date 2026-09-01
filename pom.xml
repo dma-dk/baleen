@@ -173,6 +173,14 @@
             <artifactId>assertj-core</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- Test only: builds the throwaway EC certificates the signature tests sign with. The JDK can
+             generate a key pair but has no public API for wrapping one in an X.509 certificate. -->
+        <dependency>
+            <groupId>org.bouncycastle</groupId>
+            <artifactId>bcpkix-jdk18on</artifactId>
+            <version>1.84</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
     
     <build>
