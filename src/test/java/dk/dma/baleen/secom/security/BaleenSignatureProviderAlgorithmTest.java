@@ -26,10 +26,14 @@ import java.security.cert.X509Certificate;
 import java.security.spec.ECGenParameterSpec;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Date;
 
 import javax.security.auth.x500.X500Principal;
+
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
@@ -157,23 +161,59 @@ class BaleenSignatureProviderAlgorithmTest {
     void aSignatureOmittingTheDeprecatedTrailingFieldVerifies() throws Exception {
         // The AMSA case, verified against live traffic on 2026-09-01: SHA-2-384 over a CSV whose envelope model
         // post-dates the CD3 deprecation of envelopeSignatureReference, so it lacks the trailing empty column the
-        // GRAD library still renders. The field is @JsonIgnore and thus always empty on incoming requests.
-        byte[] contentAsGradRendersIt = ".1.S-124......1.50.[MIICert].AB12CD.1756713600.".getBytes();
-        byte[] signature = sign("SHA384withECDSA", ".1.S-124......1.50.[MIICert].AB12CD.1756713600".getBytes());
+        // GRAD library still renders. The field is @JsonIgnore and thus always empty on incoming requests. A real
+        // envelope CSV always embeds the presented certificate chain - the filter builds both from the same field.
+        String csvAsGradRendersIt = ".1.S-124......1.50." + Arrays.toString(certificatePem) + ".AB12CD.1756713600.";
+        byte[] signature = sign("SHA384withECDSA", csvAsGradRendersIt.substring(0, csvAsGradRendersIt.length() - 1).getBytes());
 
         assertThat(provider.validateSignature(certificatePem, DigitalSignatureAlgorithmEnum.SHA3_384_WITH_ECDSA, signature,
-                contentAsGradRendersIt)).isTrue();
+                csvAsGradRendersIt.getBytes())).isTrue();
+    }
+
+    @Test
+    void aModifiedDataPayloadDoesNotVerifyViaTheTrailingByteFallback() throws Exception {
+        // The trailing-field leeway is for envelope CSVs only. This same method verifies data signatures over raw
+        // payload bytes, and there a validly signed payload with one byte appended must NOT verify - accepting it
+        // would authenticate a modified payload. Payloads are recognised by not embedding the certificate chain.
+        byte[] payload = "a perfectly ordinary signed payload that happens to end with a dot".getBytes();
+        byte[] signature = sign("SHA384withECDSA", payload);
+        byte[] tampered = (new String(payload) + ".").getBytes();
+
+        assertThat(provider.validateSignature(certificatePem, DigitalSignatureAlgorithmEnum.SHA2_384_WITH_ECDSA, signature,
+                tampered)).isFalse();
     }
 
     @Test
     void aSignatureOverACsvRenderingVariantIsDiagnosticOnlyAndStillRejected() throws Exception {
         // The failure log reports when a signature would verify over an alternative CSV rendering - here the
         // certificate array without Arrays.toString brackets - but reporting must never become accepting.
-        byte[] contentWithBrackets = "[MIICert].AB12CD.1756713600.".getBytes();
-        byte[] signature = sign("SHA384withECDSA", "MIICert.AB12CD.1756713600.".getBytes());
+        String contentWithBrackets = Arrays.toString(certificatePem) + ".AB12CD.1756713600.";
+        byte[] signature = sign("SHA384withECDSA", (certificatePem[0] + ".AB12CD.1756713600.").getBytes());
 
         assertThat(provider.validateSignature(certificatePem, DigitalSignatureAlgorithmEnum.SHA2_384_WITH_ECDSA, signature,
-                contentWithBrackets)).isFalse();
+                contentWithBrackets.getBytes())).isFalse();
+    }
+
+    @Test
+    void aFailedDataSignatureDoesNotLeakThePayloadIntoTheLog() throws Exception {
+        // The content of a failed data signature is a decoded - possibly decrypted - payload. The failure log
+        // identifies it by length and digest; the payload bytes themselves must never appear.
+        ch.qos.logback.classic.Logger logger = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory
+                .getLogger(BaleenSignatureProvider.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            byte[] signature = sign("SHA384withECDSA");
+            assertThat(provider.validateSignature(certificatePem, DigitalSignatureAlgorithmEnum.SHA2_384_WITH_ECDSA,
+                    signature, "TOP-SECRET-DECRYPTED-PAYLOAD.".getBytes())).isFalse();
+
+            assertThat(appender.list).isNotEmpty();
+            assertThat(appender.list).allSatisfy(
+                    event -> assertThat(event.getFormattedMessage()).doesNotContain("TOP-SECRET"));
+        } finally {
+            logger.detachAppender(appender);
+        }
     }
 
     @Test

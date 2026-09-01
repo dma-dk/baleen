@@ -19,9 +19,12 @@ import static java.util.Objects.requireNonNull;
 
 import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.Signature;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -86,13 +89,15 @@ public class BaleenSignatureProvider implements SecomSignatureProvider {
      * only interoperable verification is to accept either. The signature must still verify against the presented
      * certificate over the same bytes; which of two strong hashes it used grants nothing.
      * <p>
-     * The signed bytes are accepted in two renderings: exactly as the library computed them, and without the
+     * An envelope CSV is accepted in two renderings: exactly as the library computed it, and without the
      * CD3-deprecated {@code envelopeSignatureReference} trailing field. The library's {@code CsvStringGenerator}
      * still appends that field to every envelope CSV, but it is {@code @JsonIgnore} so an incoming request can
      * never populate it - it is always a trailing empty column that exists only in the GRAD rendering. A sender
      * whose envelope model post-dates the deprecation signs the same values without it, which is exactly what
      * AMSA's {@code s124-secom-client} does. Dropping a single trailing separator from otherwise-identical bytes
-     * authenticates the same envelope fields, at the cost of one byte of malleability on an always-empty column.
+     * authenticates the same envelope fields. Data signatures - the filter routes those through this overload
+     * too - get no such leeway: their content must match the signed bytes exactly, since anything else would
+     * authenticate a modified payload.
      * <p>
      * When nothing verifies, this logs the exact CSV string the signature was checked against - the bytes we
      * computed from the sender's envelope - plus any algorithm/CSV-variant combination that <em>would</em> have
@@ -126,7 +131,14 @@ public class BaleenSignatureProvider implements SecomSignatureProvider {
 
         Map<String, byte[]> renderings = new LinkedHashMap<>();
         renderings.put("the CSV as this library renders it", content);
-        if (content.length > 0 && content[content.length - 1] == '.') {
+        // The trailing-field rendering is for envelope CSVs only. This same overload also verifies data
+        // signatures over raw payload bytes (the filter's second call), where accepting content that differs
+        // from the signed bytes - even by one appended byte - would authenticate a modified payload. An envelope
+        // CSV provably embeds the presented certificate chain in the library's Arrays.toString rendering (the
+        // filter builds both arguments from the same envelope field), so its presence distinguishes the two; a
+        // payload only contains that rendering if its signer deliberately put it there.
+        if (content.length > 0 && content[content.length - 1] == '.'
+                && new String(content, StandardCharsets.UTF_8).contains(Arrays.toString(signatureCertificates))) {
             renderings.put("the CSV without the deprecated trailing envelopeSignatureReference field",
                     Arrays.copyOf(content, content.length - 1));
         }
@@ -154,23 +166,34 @@ public class BaleenSignatureProvider implements SecomSignatureProvider {
             throw new SecurityException(firstFailure);
         }
 
-        logVerificationFailure(cert, signature, content, accepted);
+        logVerificationFailure(cert, signatureCertificates, signature, content, accepted);
         return false;
     }
 
     /**
-     * Logs everything needed to diagnose a signature that did not verify: the exact CSV we computed - which is the
-     * half of the comparison we own; the other half is whatever the sender actually signed - and any algorithm/CSV
-     * rendering under which the signature would have verified. The renderings cover the Java-specific choices in
-     * the library's {@code CsvStringGenerator} that another implementation would plausibly make differently:
-     * {@code Arrays.toString} putting {@code [...]} around the certificate array, and the CD3-deprecated
-     * {@code envelopeSignatureReference} contributing a trailing empty field.
+     * Logs everything needed to diagnose a signature that did not verify. For an envelope signature that is the
+     * exact CSV we computed - which is the half of the comparison we own; the other half is whatever the sender
+     * actually signed - and any algorithm/CSV rendering under which the signature would have verified. The
+     * renderings cover the Java-specific choices in the library's {@code CsvStringGenerator} that another
+     * implementation would plausibly make differently: {@code Arrays.toString} putting {@code [...]} around the
+     * certificate array, and the CD3-deprecated {@code envelopeSignatureReference} contributing a trailing empty
+     * field.
+     * <p>
+     * A failed <em>data</em> signature - recognised, as in {@code validateSignature}, by the content not embedding
+     * the presented certificate chain - is a decoded, possibly decrypted, payload that must not end up in the log;
+     * it is reported by length and digest only, and the CSV rendering sweep does not apply to it.
      */
-    private void logVerificationFailure(X509Certificate cert, byte[] signature, byte[] content,
-            Set<DigitalSignatureAlgorithmEnum> accepted) {
+    private void logVerificationFailure(X509Certificate cert, String[] signatureCertificates, byte[] signature,
+            byte[] content, Set<DigitalSignatureAlgorithmEnum> accepted) {
         String csv = new String(content, StandardCharsets.UTF_8);
+        var algorithms = accepted.stream().map(DigitalSignatureAlgorithmEnum::getValue).toList();
+        if (!csv.contains(Arrays.toString(signatureCertificates))) {
+            LOGGER.warn("A data signature from {} over {} bytes (SHA-256 {}) did not verify with any of {}",
+                    cert.getSubjectX500Principal(), content.length, sha256Hex(content), algorithms);
+            return;
+        }
         LOGGER.warn("A signature from {} did not verify with any of {}. The CSV this server computed and checked it against was\n>>>{}<<<",
-                cert.getSubjectX500Principal(), accepted.stream().map(DigitalSignatureAlgorithmEnum::getValue).toList(), csv);
+                cert.getSubjectX500Principal(), algorithms, csv);
 
         Map<String, String> variants = new LinkedHashMap<>();
         variants.put("the CSV as computed", csv);
@@ -210,6 +233,15 @@ public class BaleenSignatureProvider implements SecomSignatureProvider {
         verification.initVerify(cert);
         verification.update(content);
         return verification.verify(signature);
+    }
+
+    /** {@return the SHA-256 digest of the given bytes as hex, identifying a payload without disclosing it} */
+    private static String sha256Hex(byte[] bytes) {
+        try {
+            return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
+        } catch (NoSuchAlgorithmException e) {
+            return "unavailable";
+        }
     }
 
     /**
