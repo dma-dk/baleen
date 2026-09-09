@@ -50,11 +50,13 @@ import jakarta.xml.bind.JAXBException;
 public class S124ExchangeSetService {
 
     /**
-     * The JCA name of ECDSA-384-SHA2, the only algorithm S-100 Part 15, clause 15-8.7, allows. The P1363 variant is
-     * required because the factory base64 encodes the raw R,S pair into the catalogue; the DER sequence that
-     * {@code SHA384withECDSA} produces would be decoded as something else by a receiving system.
+     * The JCA name of ECDSA-384-SHA2, the only algorithm S-100 Part 15, clause 15-8.7, allows. Plain
+     * {@code SHA384withECDSA} is the one that produces the encoding clause 15-8.4 defines - the ASN.1 DER
+     * {@code SEQUENCE} of the two integers r and s, which the factory base64 encodes into the catalogue as it stands.
+     * The {@code SHA384withECDSAinP1363Format} variant returns the raw r||s concatenation instead, which an ECDIS
+     * following Part 15 cannot decode; the factory converts nothing and rejects it outright.
      */
-    private static final String ECDSA_384_SHA2_JCA_NAME = "SHA384withECDSAinP1363Format";
+    private static final String ECDSA_384_SHA2_JCA_NAME = "SHA384withECDSA";
 
     /** The logger of this class. */
     private static final Logger LOGGER = LoggerFactory.getLogger(S124ExchangeSetService.class);

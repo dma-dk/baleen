@@ -23,8 +23,10 @@
         <!-- Released secom-v2 (resolved from the `grad` repo). Moved off the mutable
              0.0.7-SNAPSHOT which had drifted and broke reproducible builds. -->
         <version.secomlib>0.1.0</version.secomlib>
-        <!-- Released S-100/S-124 JAXB bindings from NiordOrg/niord-xml-bindings (JitPack). -->
-        <version.xmlbindings>0.1.0</version.xmlbindings>
+        <!-- Released S-100/S-124 JAXB bindings from NiordOrg/niord-xml-bindings (JitPack).
+             0.3.x dropped the legacy dk.baleen.s100.xmlbindings.s124.v1_0_0.utils package;
+             use dk.dma.niord.s100.xmlbindings.s124.v2_0_0.util.S124Utils instead. -->
+        <version.xmlbindings>0.3.1</version.xmlbindings>
         <java.version>25</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
