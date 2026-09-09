@@ -33,8 +33,8 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import dk.baleen.s100.xmlbindings.s124.v1_0_0.utils.S124Utils;
 import dk.dma.niord.s100.xmlbindings.s124.v2_0_0.Dataset;
+import dk.dma.niord.s100.xmlbindings.s124.v2_0_0.util.S124Utils;
 import jakarta.xml.bind.JAXBException;
 
 /**

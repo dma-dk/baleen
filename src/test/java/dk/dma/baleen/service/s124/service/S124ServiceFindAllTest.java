@@ -36,8 +36,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
-import dk.baleen.s100.xmlbindings.s124.v1_0_0.utils.S124Utils;
 import dk.dma.niord.s100.xmlbindings.s124.v2_0_0.impl.DatasetImpl;
+import dk.dma.niord.s100.xmlbindings.s124.v2_0_0.util.S124Utils;
 import dk.dma.baleen.service.s124.NiordApiCaller;
 import dk.dma.baleen.service.s124.NiordApiCaller.Result;
 import dk.dma.baleen.service.spi.DataSet;
